@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const countries=[['España','🇪🇸'],['Alemania','🇩🇪'],['Francia','🇫🇷'],['Reino Unido','🇬🇧'],['Italia','🇮🇹'],['Países Bajos','🇳🇱'],['Polonia','🇵🇱'],['Irlanda','🇮🇪']];
+const countries=[['España','🇪🇸'],['Alemania','🇩🇪'],['Francia','🇫🇷'],['Reino Unido','🇬🇧'],['Italia','🇮🇹'],['Países Bajos','🇳🇱'],['Polonia','🇵🇱'],['Irlanda','🇮🇪'],['Estados Unidos','🇺🇸'],['Canadá','🇨🇦']];
 const labels={operational:'OPERATIVO',degraded:'DEGRADADO',outage:'INCIDENCIA',unreachable:'SIN CONEXIÓN',unknown:'SIN DATOS'};
 const serviceIcons={'Gestión de cuentas':'♙','Juegos y redes sociales':'◈','PlayStation Store':'▣'};
 let data=null,history=[],selected='España',filter='all',previous={},seconds=60,busy=false,hasLoaded=false;
@@ -11,8 +11,8 @@ function fmtDate(s){if(!s)return 'Pendiente';const d=new Date(s);return Number.i
 function flag(name){return countries.find(c=>c[0]===name)?.[1]||'🌍';}
 function overallStatus(rs){if(!rs.length)return 'unknown';if(rs.some(r=>r.status==='outage'))return 'outage';if(rs.some(r=>r.status==='degraded'))return 'degraded';if(rs.some(r=>!['operational','outage','degraded'].includes(r.status)))return 'unknown';return 'operational';}
 function render(){if(!data)return;const rs=Array.isArray(data.regions)?data.regions:[];const ok=rs.filter(r=>r.status==='operational').length;const bad=rs.filter(r=>['outage','degraded'].includes(r.status)).length;const missing=rs.filter(r=>!['operational','outage','degraded'].includes(r.status)).length;const overall=overallStatus(rs);
- $('updated').textContent=fmtDate(data.updated_at);$('overall').className='hero-status '+overall;$('overall').textContent=overall==='operational'?'Todo operativo':overall==='degraded'?'Servicio degradado':overall==='outage'?'Incidencia detectada':'Datos incompletos';$('overall-note').textContent=overall==='operational'?'Sin incidencias publicadas en los ocho países':overall==='unknown'?'Una o más regiones no tienen datos fiables':'Sony ha publicado incidencias en alguna región';
- $('online-count').innerHTML=ok+' <span>/ 8</span>';$('online-note').textContent=missing?`${missing} región(es) sin datos`:'Según los datos publicados';$('incident-count').textContent=bad;$('incident-note').textContent=bad?'Regiones con incidencias':'Ninguna incidencia detectada';
+ $('updated').textContent=fmtDate(data.updated_at);$('overall').className='hero-status '+overall;$('overall').textContent=overall==='operational'?'Todo operativo':overall==='degraded'?'Servicio degradado':overall==='outage'?'Incidencia detectada':'Datos incompletos';$('overall-note').textContent=overall==='operational'?`Sin incidencias publicadas en los ${rs.length} países`:overall==='unknown'?'Una o más regiones no tienen datos fiables':'Sony ha publicado incidencias en alguna región';
+ $('online-count').innerHTML=ok+' <span>/ '+rs.length+'</span>';$('online-note').textContent=missing?`${missing} región(es) sin datos`:'Según los datos publicados';$('incident-count').textContent=bad;$('incident-note').textContent=bad?'Regiones con incidencias':'Ninguna incidencia detectada';
  const times=rs.map(r=>r.latency_ms).filter(x=>typeof x==='number'&&Number.isFinite(x));$('latency').innerHTML=times.length?Math.round(Math.max(...times))+' <span>ms</span>':'— <span>ms</span>';
  $('availability').textContent=rs.length?`${ok}/${rs.length}`:'—';$('availability-ring').style.setProperty('--percent',rs.length?100*ok/rs.length:0);$('availability-ring').style.setProperty('--ring-color',overall==='operational'?'var(--green)':overall==='outage'?'var(--red)':overall==='degraded'?'var(--yellow)':'var(--neutral)');
  const shown=rs.filter(r=>filter==='all'||(filter==='operational'?r.status==='operational':r.status!=='operational'));
@@ -25,11 +25,29 @@ async function refresh(){if(busy)return;busy=true;$('refresh-now').disabled=true
 async function loadHistory(){try{const response=await fetch('/api/history?hours='+encodeURIComponent($('period').value),{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const result=await response.json();history=Array.isArray(result)?result:[];renderHistory();}catch(err){$('history-chart').innerHTML='<div class="empty-state">No se ha podido cargar el historial.</div>';}}
 function renderHistory(){if(!history.length){$('history-chart').innerHTML='<div class="empty-state">Aún no hay registros para este periodo.</div>';return;}
  const end=Date.now(),hours=Number($('period').value),start=end-hours*3600000,slots=48,slotWidth=(end-start)/slots;
- const groups=new Map(countries.map(([name])=>[name,Array.from({length:slots},()=>[])]));
+ const names=[...new Set([...countries.map(([name])=>name),...history.map(item=>item.region)])];
+ const groups=new Map(names.map(name=>[name,Array.from({length:slots},()=>[])]));
  for(const item of history){const t=Date.parse(item.time);if(!Number.isFinite(t)||t<start||t>end||!groups.has(item.region))continue;const i=Math.min(slots-1,Math.floor((t-start)/slotWidth));groups.get(item.region)[i].push(state(item.status));}
  const priority=['outage','degraded','unknown','unreachable','operational'];const worst=arr=>priority.find(s=>arr.includes(s))||'empty';
- $('history-chart').innerHTML=countries.map(([name,emoji])=>`<div class="history-row"><span class="history-name">${emoji} ${safe(name)}</span><div class="history-bar" role="img" aria-label="Historial de ${safe(name)}">${groups.get(name).map((arr,i)=>`<span class="history-cell ${worst(arr)}" title="${safe(name)} · ${new Date(start+i*slotWidth).toLocaleString('es-ES')} · ${arr.length?statusText(worst(arr)):'Sin registro'}"></span>`).join('')}</div></div>`).join('')+`<div class="history-axis"><span>Hace ${hours} h</span><span>Ahora</span></div>`;
+ $('history-chart').innerHTML=names.map(name=>`<div class="history-row"><span class="history-name">${flag(name)} ${safe(name)}</span><div class="history-bar" role="img" aria-label="Historial de ${safe(name)}">${groups.get(name).map((arr,i)=>`<span class="history-cell ${worst(arr)}" title="${safe(name)} · ${new Date(start+i*slotWidth).toLocaleString('es-ES')} · ${arr.length?statusText(worst(arr)):'Sin registro'}"></span>`).join('')}</div></div>`).join('')+`<div class="history-axis"><span>Hace ${hours} h</span><span>Ahora</span></div>`;
 }
 $('refresh-now').addEventListener('click',refresh);$('period').addEventListener('change',loadHistory);document.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));render();}));
 $('notify').addEventListener('click',async()=>{if(!('Notification'in window)){alert('Este navegador no admite notificaciones.');return;}try{const permission=await Notification.requestPermission();$('notify').textContent=permission==='granted'?'✓ Avisos activados':'Avisos no permitidos';}catch(e){alert('No se han podido activar las notificaciones.');}});
 setInterval(()=>{$('countdown').textContent=Math.max(0,seconds--)+' s';},1000);setInterval(refresh,60000);refresh();
+
+// Cuenta atrás independiente del temporizador de actualización de PSN.
+// Medianoche del 19 de noviembre en Madrid (CET, UTC+01:00).
+const launchTimestamp = Date.parse('2026-11-19T00:00:00+01:00');
+function updateLaunchCountdown(){
+ const remaining=Math.max(0,launchTimestamp-Date.now());
+ const totalSeconds=Math.floor(remaining/1000);
+ const days=Math.floor(totalSeconds/86400),hours=Math.floor(totalSeconds%86400/3600);
+ const minutes=Math.floor(totalSeconds%3600/60),seconds=totalSeconds%60;
+ for(const [unit,value] of [['days',days],['hours',hours],['minutes',minutes],['seconds',seconds]]){
+  const el=$('launch-'+unit);if(el)el.textContent=String(value).padStart(2,'0');
+ }
+ const message=$('launch-message');
+ if(message)message.textContent=remaining===0?'¡Ha llegado la fecha anunciada de lanzamiento!':'LA NOCHE MÁS ESPERADA SE ACERCA';
+}
+updateLaunchCountdown();
+setInterval(updateLaunchCountdown,1000);

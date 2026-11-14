@@ -2,6 +2,7 @@ import os
 import time
 import sqlite3
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import requests
@@ -16,7 +17,10 @@ if DB_DIR:
 
 INTERVAL = max(30, int(os.getenv("CHECK_INTERVAL_SECONDS", "60")))
 TIMEOUT = 20
-PSN_DATA_URL = "https://status.playstation.com/data/statuses/region/SCEE.json"
+PSN_DATA_URLS = {
+    "SCEE": "https://status.playstation.com/data/statuses/region/SCEE.json",
+    "SCEA": "https://status.playstation.com/data/statuses/region/SCEA.json",
+}
 # Cada país conserva su enlace oficial para abrirlo desde la interfaz.
 REGIONS = {
     "España": ("ES", "https://status.playstation.com/es-es/"),
@@ -27,6 +31,8 @@ REGIONS = {
     "Países Bajos": ("NL", "https://status.playstation.com/en-nl/"),
     "Polonia": ("PL", "https://status.playstation.com/en-pl/"),
     "Irlanda": ("IE", "https://status.playstation.com/en-ie/"),
+    "Estados Unidos": ("US", "https://status.playstation.com/en-us/"),
+    "Canadá": ("CA", "https://status.playstation.com/en-ca/"),
 }
 SERVICE_NAMES = {
     "PlayStation_Store": "PlayStation Store",
@@ -146,38 +152,54 @@ def check_country(name, code, url, countries, latency):
         "region": name,
         "status": overall,
         "latency_ms": latency,
-        "detail": f"PSN SCEE; país {code}; {len(raw_services) if isinstance(raw_services, list) else 0} servicios",
+        "detail": f"PSN; país {code}; {len(raw_services) if isinstance(raw_services, list) else 0} servicios",
         "services": services,
         "url": url,
     }
 
 
-def fetch_country_results():
+def fetch_psn_region(region):
+    """Consulta un grupo Sony sin convertir fallos de red en estados operativos."""
     started = time.monotonic()
     try:
         response = requests.get(
-            PSN_DATA_URL, timeout=TIMEOUT,
-            headers={"User-Agent": "GTA-VI-Server-Monitor/2.0", "Accept": "application/json"},
+            PSN_DATA_URLS[region], timeout=TIMEOUT,
+            headers={"User-Agent": "GTA-VI-Server-Monitor/2.2", "Accept": "application/json"},
         )
         response.raise_for_status()
         data = response.json()
         if not isinstance(data, dict):
             raise ValueError("Respuesta regional inesperada de Sony")
-        raw_countries = data.get("countries")
-        if not isinstance(raw_countries, list) or not raw_countries:
+        raw = data.get("countries")
+        if not isinstance(raw, list) or not raw:
             raise ValueError("Lista de países ausente o vacía")
-        countries = {c["countryCode"]: c for c in raw_countries
+        countries = {c["countryCode"].upper(): c for c in raw
                      if isinstance(c, dict) and isinstance(c.get("countryCode"), str)}
-        latency = int((time.monotonic() - started) * 1000)
-        return [check_country(name, code, url, countries, latency)
-                for name, (code, url) in REGIONS.items()]
+        return countries, int((time.monotonic() - started) * 1000), None
     except (requests.RequestException, ValueError, TypeError, KeyError) as exc:
-        latency = int((time.monotonic() - started) * 1000)
-        app.logger.exception("Error consultando datos JSON de PlayStation")
-        return [{
-            "region": name, "status": "unreachable", "latency_ms": latency,
-            "detail": str(exc)[:180], "services": {}, "url": url,
-        } for name, (code, url) in REGIONS.items()]
+        app.logger.warning("No se pudo consultar PSN %s: %s", region, exc)
+        return {}, int((time.monotonic() - started) * 1000), str(exc)[:180]
+
+
+def fetch_country_results():
+    # Consultas paralelas: un fallo americano no bloquea ni falsea Europa.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {name: executor.submit(fetch_psn_region, name) for name in PSN_DATA_URLS}
+        sources = {name: future.result() for name, future in futures.items()}
+    results = []
+    for name, (code, url) in REGIONS.items():
+        source = "SCEA" if code in ("US", "CA") else "SCEE"
+        countries, latency, error = sources[source]
+        if error:
+            results.append({
+                "region": name, "status": "unreachable", "latency_ms": latency,
+                "detail": f"PSN {source}: {error}", "services": {}, "url": url,
+            })
+        else:
+            item = check_country(name, code, url, countries, latency)
+            item["detail"] = f"PSN {source}; " + item["detail"]
+            results.append(item)
+    return results
 
 
 def run_check():
