@@ -187,3 +187,31 @@ html{scroll-behavior:smooth}body{background:#090b20;color:var(--text);isolation:
 .launch-top{display:flex;align-items:start;justify-content:space-between;gap:15px}.launch-top h2{font-family:'Barlow Condensed',Impact,sans-serif;font-style:italic;font-weight:900;line-height:1.1;letter-spacing:.4px;font-size:clamp(26px,3vw,40px);margin:8px 0}.launch-top h2 em{color:#ffb5d8;font-style:inherit}.launch-top p{color:#e6c9dc;font-size:12px;margin:0}.launch-label{font-size:10px;letter-spacing:1.5px;font-weight:800;color:#ffdcba;border:1px solid #b76b9c;border-radius:30px;padding:10px 12px;white-space:nowrap}
 .launch-clock{display:flex;justify-content:center;align-items:center;gap:clamp(5px,2vw,22px);margin:22px auto 17px;max-width:850px}.launch-unit{flex:1;min-width:0;text-align:center;border:1px solid #bc6da7a1;background:linear-gradient(155deg,#60316f88,#211a3aaf);border-radius:13px;padding:12px 8px 10px;box-shadow:inset 0 1px #ffffff25,0 0 28px #ed63b41a}.launch-unit strong{display:block;color:#fff0e9;font-family:'Barlow Condensed',Impact,sans-serif;font-weight:900;font-size:clamp(35px,5.6vw,74px);font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 3px 24px #ff79bc55}.launch-unit span{display:block;color:#ffc5df;font-size:10px;letter-spacing:2px;font-weight:800;margin-top:7px}.launch-separator{font-size:clamp(20px,3vw,39px);color:#ffa9cf;align-self:center}.launch-bottom{display:flex;justify-content:space-between;gap:12px;align-items:center;color:#8ef9d8;font-size:10px;font-weight:800;letter-spacing:1.1px}.launch-bottom a{color:#ffd2ab}.launch-caveat{margin:12px 0 0;color:#bba5c6;font-size:10px;line-height:1.5}
 @media(max-width:700px){.launch-section{padding:18px 14px 13px}.launch-top{display:block}.launch-label{display:inline-block;margin-top:12px;font-size:9px}.launch-clock{gap:5px;margin:17px auto}.launch-unit{padding:12px 3px 9px;border-radius:8px}.launch-unit strong{font-size:clamp(27px,8vw,47px)}.launch-unit span{font-size:8px;letter-spacing:.6px}.launch-separator{font-size:20px}.launch-bottom{font-size:9px;flex-wrap:wrap}}
+
+
+/* === VICE CITY PREMIUM 2.3 — COLLAGE EDITION ===
+   User-provided illustration is displayed unchanged. Functionality/IDs preserved. */
+:root{--bg:#150723;--panel:#24112f;--panel2:#341b42;--line:#8e4d9b;--violet:#ff79c8;--blue:#61e2ee}
+body{background:linear-gradient(180deg,#180924 0%,#170c2a 42%,#0b1024 100%)}
+.cinematic-world{display:none!important}
+.shell{width:min(1380px,calc(100% - 38px))}
+.header{border-bottom:2px solid #b657b3;padding:13px 0}
+.intro{position:relative;display:flex;flex-direction:column;min-height:0!important;padding:0!important;margin:18px 0 16px;gap:0;overflow:hidden;border:3px solid #310b46;border-radius:18px;background:#180d2d;box-shadow:0 20px 65px #06020b90,0 0 0 1px #fa84c44a}
+.collage-art{width:100%;height:clamp(260px,34vw,475px);background-image:url('/static/gta6-collage-reference.png');background-size:cover;background-position:center 49%;background-repeat:no-repeat;position:relative;isolation:isolate}
+.collage-art:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 63%,#170c2a 100%);pointer-events:none}
+.intro .intro-copy{position:relative;max-width:none!important;display:flex;flex-wrap:wrap;align-items:center;column-gap:20px;row-gap:8px;padding:12px 22px 16px;background:linear-gradient(90deg,#29123a,#171029);width:100%}
+.intro .eyebrow{font-size:10px;color:#ffc8e3;margin:0}
+.intro .cinematic-kicker,.intro h1,.intro .hero-rule{display:none!important}
+.intro .intro-description{max-width:700px!important;font-size:13px!important;margin:0!important;color:#fbe9ff!important}
+.intro .hero-micro{margin:0!important;flex:1 0 100%;color:#e2b8db}
+.intro .refresh-card{position:absolute;right:17px;top:18px;z-index:3;align-self:auto;margin:0;background:#1a1036e8;border:1px solid #ff99d3;box-shadow:0 10px 30px #10052199;backdrop-filter:blur(10px)}
+.hero-version{background:#e8479e;color:#fff;border-color:#ffc0df}
+.launch-section{background:linear-gradient(120deg,#321344,#1d133b 50%,#19274a)!important;border:2px solid #ff8ed3!important;box-shadow:inset 0 1px #fff3,0 15px 35px #0005}
+.launch-unit{background:linear-gradient(155deg,#79347d,#28143e)!important;border-color:#fa8ac9!important}
+.section-ticker{background:#271036;border-top:2px solid #e46aaf;border-bottom:2px solid #e46aaf}
+.hero-card,.metric-card,.section{border-color:#a759a6!important;background:linear-gradient(145deg,#32173f,#17142c)!important}
+.hero-card{border-left:4px solid #ff80c5!important}.metric-card:nth-child(2){border-top:3px solid #fc73c0!important}.metric-card:nth-child(3){border-top:3px solid #ffb76b!important}.metric-card:nth-child(4){border-top:3px solid #63dbe9!important}
+.region-card{background:linear-gradient(145deg,#392049,#211831)!important;border-color:#945a9e!important}.region-card:hover,.region-card.selected{border-color:#ff9ad3!important;box-shadow:0 0 0 1px #ff9ad388,0 10px 25px #fa5cac33!important}
+.section-heading h2{color:#fff0f9;text-shadow:2px 3px 0 #7a2a70}
+@media(max-width:800px){.collage-art{height:clamp(220px,48vw,370px)}.intro .refresh-card{position:relative;right:auto;top:auto;align-self:stretch;margin:0 12px 12px;min-width:0}.intro .intro-copy{padding:13px 14px}.intro .hero-micro{flex-wrap:wrap}}
+@media(max-width:500px){.shell{width:calc(100% - 20px)}.collage-art{height:230px;background-position:center center}.intro .intro-copy{gap:9px}.intro .intro-description{font-size:12px!important}.launch-section{margin-top:14px}.header-right .source-pill{display:none}}
