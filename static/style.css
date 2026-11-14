@@ -215,3 +215,32 @@ body{background:linear-gradient(180deg,#180924 0%,#170c2a 42%,#0b1024 100%)}
 .section-heading h2{color:#fff0f9;text-shadow:2px 3px 0 #7a2a70}
 @media(max-width:800px){.collage-art{height:clamp(220px,48vw,370px)}.intro .refresh-card{position:relative;right:auto;top:auto;align-self:stretch;margin:0 12px 12px;min-width:0}.intro .intro-copy{padding:13px 14px}.intro .hero-micro{flex-wrap:wrap}}
 @media(max-width:500px){.shell{width:calc(100% - 20px)}.collage-art{height:230px;background-position:center center}.intro .intro-copy{gap:9px}.intro .intro-description{font-size:12px!important}.launch-section{margin-top:14px}.header-right .source-pill{display:none}}
+
+
+/* === VICE CITY PREMIUM 2.4 — PANORAMA & FLAGS === */
+.intro{margin-top:12px!important;margin-bottom:12px!important;border-radius:14px}
+.collage-art{height:clamp(330px,37vw,520px)!important;background:none!important;overflow:hidden;display:block;isolation:isolate}
+.collage-image{display:block;width:100%;height:100%;object-fit:cover;object-position:center center;filter:saturate(1.09) contrast(1.04)}
+.collage-art::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 76%,#170c2a 100%);pointer-events:none}
+.intro .intro-copy{padding:10px 18px 12px!important}
+.intro .refresh-card{top:14px!important;right:14px!important}
+.launch-section{padding:16px 22px 12px!important;margin:5px 0 14px!important}
+.launch-top h2{font-size:clamp(24px,2.7vw,34px)!important;margin:5px 0!important}
+.launch-clock{margin:12px auto 10px!important;max-width:760px!important;gap:clamp(5px,1.5vw,14px)!important}
+.launch-unit{padding:8px 6px 7px!important}
+.launch-unit strong{font-size:clamp(34px,4.5vw,59px)!important}
+.launch-unit span{margin-top:4px!important}
+.launch-caveat{margin-top:8px!important}
+.region-card{min-height:140px!important;padding:15px!important}
+.region-card-top{align-items:flex-start!important}
+.region-card .flag{display:flex;align-items:center;justify-content:center;width:62px;height:45px;padding:4px;background:linear-gradient(135deg,#ff9bd42e,#62dce529);border:1px solid #f99ad67a;border-radius:8px;box-shadow:0 5px 15px #0005,0 0 18px #ff7abd18;line-height:1}
+.country-flag{display:inline-block;width:49px;height:33px;max-width:100%;object-fit:cover;border-radius:3px;vertical-align:middle;box-shadow:0 2px 8px #0008;flex-shrink:0}
+.region-card:hover .flag,.region-card.selected .flag{border-color:#67f4ed;box-shadow:0 0 15px #68dfe455}
+.region-name{margin-top:13px!important}
+.selected-country{display:inline-flex;align-items:center;gap:8px}
+.selected-country .country-flag{width:27px;height:18px}
+.history-name{display:flex;align-items:center;gap:7px}
+.history-name .country-flag{width:23px;height:15px;box-shadow:none}
+@media(max-width:800px){.collage-art{height:clamp(250px,48vw,420px)!important}.intro .refresh-card{position:relative!important;top:auto!important;right:auto!important;margin:0 12px 12px!important}}
+@media(max-width:500px){.collage-art{height:235px!important}.collage-image{object-position:center}.intro .intro-copy{padding:12px!important}.launch-section{padding:13px 11px 11px!important}.launch-clock{gap:4px!important}.launch-unit strong{font-size:clamp(27px,7.8vw,42px)!important}.region-card{padding:11px!important;min-height:137px!important}.region-card .flag{width:52px;height:39px}.region-card .country-flag{width:41px;height:27px}.history-name .country-flag{width:20px;height:14px}}
+@media(prefers-reduced-motion:reduce){.collage-image{transition:none!important}}
