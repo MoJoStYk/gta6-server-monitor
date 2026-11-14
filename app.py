@@ -1,14 +1,10 @@
-
 import os
-import re
 import time
 import sqlite3
 import threading
 from datetime import datetime, timezone
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
-from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,33 +15,23 @@ if DB_DIR:
     os.makedirs(DB_DIR, exist_ok=True)
 
 INTERVAL = max(30, int(os.getenv("CHECK_INTERVAL_SECONDS", "60")))
-TIMEOUT = 15
-# VERSION_DIAGNOSTICO_20261114
-
+TIMEOUT = 20
+PSN_DATA_URL = "https://status.playstation.com/data/statuses/region/SCEE.json"
+# Cada país conserva su enlace oficial para abrirlo desde la interfaz.
 REGIONS = {
-    "España": "https://status.playstation.com/es-es/",
-    "Alemania": "https://status.playstation.com/de-de/",
-    "Francia": "https://status.playstation.com/fr-fr/",
-    "Reino Unido": "https://status.playstation.com/en-gb/",
-    "Italia": "https://status.playstation.com/it-it/",
-    "Países Bajos": "https://status.playstation.com/en-nl/",
-    "Polonia": "https://status.playstation.com/en-pl/",
-    "Irlanda": "https://status.playstation.com/en-ie/",
+    "España": ("ES", "https://status.playstation.com/es-es/"),
+    "Alemania": ("DE", "https://status.playstation.com/de-de/"),
+    "Francia": ("FR", "https://status.playstation.com/fr-fr/"),
+    "Reino Unido": ("GB", "https://status.playstation.com/en-gb/"),
+    "Italia": ("IT", "https://status.playstation.com/it-it/"),
+    "Países Bajos": ("NL", "https://status.playstation.com/en-nl/"),
+    "Polonia": ("PL", "https://status.playstation.com/en-pl/"),
+    "Irlanda": ("IE", "https://status.playstation.com/en-ie/"),
 }
-
-SERVICE_TERMS = {
-    "PlayStation Store": [
-        "playstation store",
-        "store"
-    ],
-    "Juegos y redes sociales": [
-        "gaming and social",
-        "juegos y redes sociales"
-    ],
-    "Gestión de cuentas": [
-        "account management",
-        "gestión de cuentas"
-    ],
+SERVICE_NAMES = {
+    "PlayStation_Store": "PlayStation Store",
+    "Gaming_And_Social": "Juegos y redes sociales",
+    "Account_Management": "Gestión de cuentas",
 }
 
 app = Flask(__name__)
@@ -86,212 +72,119 @@ def db():
     return conn
 
 
-def classify(text):
-    t = re.sub(r"\s+", " ", text.lower())
+def classify_incidents(incidents):
+    """Clasifica incidencias explícitas; una lista vacía significa sin incidencias."""
+    if not isinstance(incidents, list):
+        return "unknown"
+    if not incidents:
+        return "operational"
+    kinds = []
+    for incident in incidents:
+        if not isinstance(incident, dict):
+            return "unknown"
+        kind = str(incident.get("statusType", "")).lower()
+        if "outage" in kind or kind in ("down", "unavailable"):
+            kinds.append("outage")
+        elif any(word in kind for word in ("degrad", "maintenance", "disrupt", "issue")):
+            kinds.append("degraded")
+        else:
+            kinds.append("unknown")
+    if "outage" in kinds:
+        return "outage"
+    if "degraded" in kinds:
+        return "degraded"
+    return "unknown"
 
-    # Estado general
-    if any(x in t for x in [
-        "all services are up and running",
-        "todos los servicios están activos",
-        "tous les services sont opérationnels",
-        "alle dienste sind betriebsbereit",
-        "tutti i servizi sono attivi"
-    ]):
-        overall = "operational"
 
-    elif any(x in t for x in [
-        "service outage",
-        "interrupción",
-        "panne",
-        "ausfall",
-        "interruzione",
-        "major outage",
-        "critical"
-    ]):
-        overall = "outage"
+def worst_status(statuses):
+    """No declara operativo un país si hay estados que no podemos interpretar."""
+    for status in ("outage", "degraded", "unknown", "operational"):
+        if status in statuses:
+            return status
+    return "unknown"
 
-    elif any(x in t for x in [
-        "degraded",
-        "degradado",
-        "degraded performance",
-        "rendimiento reducido",
-        "partial outage",
-        "problema"
-    ]):
-        overall = "degraded"
 
-    elif any(x in t for x in [
-        "service is running",
-        "servicio está activo",
-        "fonctionne",
-        "betriebsbereit"
-    ]):
-        overall = "operational"
+def check_country(name, code, url, countries, latency):
+    country = countries.get(code)
+    if not isinstance(country, dict):
+        return {
+            "region": name, "status": "unknown", "latency_ms": latency,
+            "detail": f"País {code} ausente del JSON", "services": {}, "url": url,
+        }
 
-    else:
-        overall = "unknown"
-
-    # Estado individual de los servicios
     services = {}
+    country_status = classify_incidents(country.get("status"))
+    all_statuses = [country_status]
+    raw_services = country.get("services")
+    if not isinstance(raw_services, list) or not raw_services:
+        all_statuses.append("unknown")
+    else:
+        for service in raw_services:
+            if not isinstance(service, dict):
+                all_statuses.append("unknown")
+                continue
+            service_id = service.get("serviceId")
+            statuses = [classify_incidents(service.get("status"))]
+            resources = service.get("resources", [])
+            if not isinstance(resources, list):
+                statuses.append("unknown")
+            else:
+                for resource in resources:
+                    if not isinstance(resource, dict):
+                        statuses.append("unknown")
+                    else:
+                        statuses.append(classify_incidents(resource.get("status")))
+            service_status = worst_status(statuses)
+            all_statuses.append(service_status)
+            if service_id in SERVICE_NAMES:
+                services[SERVICE_NAMES[service_id]] = service_status
 
-    for label, terms in SERVICE_TERMS.items():
-
-        services[label] = "unknown"
-
-        for term in terms:
-
-            pos = t.find(term)
-
-            if pos >= 0:
-
-                excerpt = t[
-                    max(0, pos - 120):
-                    pos + 260
-                ]
-
-                if any(x in excerpt for x in [
-                    "not running",
-                    "not operational",
-                    "down",
-                    "outage",
-                    "no está activo",
-                    "no funciona",
-                    "interruption"
-                ]):
-                    services[label] = "outage"
-
-                elif any(x in excerpt for x in [
-                    "degraded",
-                    "degradado",
-                    "limited",
-                    "reduced"
-                ]):
-                    services[label] = "degraded"
-
-                else:
-                    services[label] = "operational"
-
-                break
-
-    return overall, services
+    # El campo regional contiene incidencias agregadas de distintos países.
+    # No se aplica indiscriminadamente: solo se usa la información del país.
+    overall = worst_status(all_statuses)
+    return {
+        "region": name,
+        "status": overall,
+        "latency_ms": latency,
+        "detail": f"PSN SCEE; país {code}; {len(raw_services) if isinstance(raw_services, list) else 0} servicios",
+        "services": services,
+        "url": url,
+    }
 
 
-def check_region(name, url):
-
+def fetch_country_results():
     started = time.monotonic()
-
     try:
-
         response = requests.get(
-            url,
-            timeout=TIMEOUT,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 "
-                    "(compatible; GTA-VI-Server-Monitor/1.1)"
-                ),
-                "Accept-Language": (
-                    "es-ES,es;q=0.9,en;q=0.8"
-                ),
-            },
+            PSN_DATA_URL, timeout=TIMEOUT,
+            headers={"User-Agent": "GTA-VI-Server-Monitor/2.0", "Accept": "application/json"},
         )
-
-        latency = int(
-            (time.monotonic() - started) * 1000
-        )
-
-        if response.status_code >= 500:
-
-            return {
-                "region": name,
-                "status": "unreachable",
-                "latency_ms": latency,
-                "detail": f"HTTP {response.status_code}",
-                "services": {},
-                "url": url,
-            }
-
         response.raise_for_status()
-
-        soup = BeautifulSoup(
-            response.text,
-            "html.parser"
-        )
-
-        # Extraer texto de la página oficial
-        page_text = soup.get_text(
-            " ",
-            strip=True
-        )
-
-        # Clasificar el contenido
-        overall, services = classify(page_text)
-
-        # DIAGNÓSTICO: registrar contenido recibido
-        app.logger.info(
-            "PSN %s | texto extraído: %s caracteres | muestra: %s",
-            name,
-            len(page_text),
-            page_text[:700]
-        )
-
-        return {
-            "region": name,
-            "status": overall,
-            "latency_ms": latency,
-            "detail": (
-                f"HTTP {response.status_code}; "
-                f"texto extraído: {len(page_text)} caracteres"
-            ),
-            "services": services,
-            "url": url,
-        }
-
-    except Exception as exc:
-
-        latency = int(
-            (time.monotonic() - started) * 1000
-        )
-
-        app.logger.exception(
-            "Error consultando PlayStation en %s",
-            name
-        )
-
-        return {
-            "region": name,
-            "status": "unreachable",
-            "latency_ms": latency,
-            "detail": str(exc)[:180],
-            "services": {},
-            "url": url,
-        }
+        data = response.json()
+        if not isinstance(data, dict):
+            raise ValueError("Respuesta regional inesperada de Sony")
+        raw_countries = data.get("countries")
+        if not isinstance(raw_countries, list) or not raw_countries:
+            raise ValueError("Lista de países ausente o vacía")
+        countries = {c["countryCode"]: c for c in raw_countries
+                     if isinstance(c, dict) and isinstance(c.get("countryCode"), str)}
+        latency = int((time.monotonic() - started) * 1000)
+        return [check_country(name, code, url, countries, latency)
+                for name, (code, url) in REGIONS.items()]
+    except (requests.RequestException, ValueError, TypeError, KeyError) as exc:
+        latency = int((time.monotonic() - started) * 1000)
+        app.logger.exception("Error consultando datos JSON de PlayStation")
+        return [{
+            "region": name, "status": "unreachable", "latency_ms": latency,
+            "detail": str(exc)[:180], "services": {}, "url": url,
+        } for name, (code, url) in REGIONS.items()]
 
 
 def run_check():
 
     global latest
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
-
-        futures = [
-            pool.submit(check_region, name, url)
-            for name, url in REGIONS.items()
-        ]
-
-        results = [
-            future.result()
-            for future in as_completed(futures)
-        ]
-
-    order = {
-        name: index
-        for index, name in enumerate(REGIONS)
-    }
-
-    results.sort(
-        key=lambda item: order[item["region"]]
-    )
+    results = fetch_country_results()
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -434,7 +327,7 @@ def api_history():
                 status,
                 latency_ms
             FROM checks
-            WHERE checked_at >= datetime('now', ?)
+            WHERE julianday(checked_at) >= julianday('now', ?)
             ORDER BY checked_at
             """,
             (f"-{hours} hours",),
