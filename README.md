@@ -1,59 +1,46 @@
-# GTA VI Server Monitor
+# GTA VI Server Monitor — Railway ready
 
-Panel web independiente para consultar cada 60 segundos las páginas regionales oficiales de estado de PlayStation.
+## Qué hace
+Panel web que consulta cada 60 segundos ocho páginas regionales públicas de estado de PlayStation y guarda el resultado en SQLite.
 
-## Requisitos
-- Python 3.10+
-- Conexión a Internet
-- Un equipo o servidor encendido mientras se quiera monitorizar
+**Importante:** consulta páginas públicas de estado; no mide la carga interna de PSN, las colas de descarga ni el número de precargas de GTA VI. Las regiones son localizaciones de páginas, no pruebas de centros de datos independientes.
 
-## Arranque en Windows
-1. Instala Python desde https://www.python.org/downloads/ (marca "Add Python to PATH").
-2. Descomprime el proyecto.
-3. Abre PowerShell en la carpeta `gta_vi_server_monitor`.
-4. Ejecuta:
+## Despliegue en Railway
 
+1. Sube el contenido de esta carpeta al repositorio GitHub conectado a Railway (incluidos `app.py`, `gunicorn.conf.py`, `requirements.txt`, `templates/` y `static/`).
+2. En Railway, conecta un Volume al servicio con Mount Path `/data`.
+3. En Variables, configura:
+   - `DATABASE_PATH` = `/data/monitor.db`
+   - `CHECK_INTERVAL_SECONDS` = `60`
+4. En Settings > Deploy, configura el Start Command:
+   ```bash
+   gunicorn -c gunicorn_conf.py app:app
+   ```
+5. Haz Deploy/Redeploy y espera a que el despliegue termine.
+6. Abre el dominio público del servicio.
+7. Comprueba `https://TU-DOMINIO/health`. Debe mostrar `ok: true`, `database_path: /data/monitor.db` y `scheduler_started: true`.
+
+## Ajustes importantes
+- Usa exactamente un worker Gunicorn (`workers = 1`) para evitar dos programadores escribiendo el mismo histórico.
+- El programador se inicia en el hook `post_worker_init`, después de que Gunicorn cree su worker.
+- El primer chequeo se realiza al arrancar y después se repite cada 60 segundos.
+- El volumen debe estar montado en `/data`; no pongas `/data/monitor.db` como Mount Path.
+- No elimines ni desconectes el volumen si quieres conservar el histórico.
+
+## Ejecución local en Windows
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 py app.py
 ```
+Abre `http://localhost:8080`.
 
-5. Abre `http://localhost:8080` en el navegador.
-6. Pulsa "Activar notificaciones" y permite las notificaciones del navegador.
-
-## Uso desde iPhone u otro dispositivo de la misma Wi-Fi
-- Averigua la IP local del PC con `ipconfig`.
-- En el iPhone abre `http://IP-DEL-PC:8080`.
-- El PC debe permanecer encendido y ambos dispositivos en la misma red.
-- Para notificaciones, los navegadores suelen exigir HTTPS o localhost. En iPhone, usa una dirección HTTPS si se publica en Internet; la web local por HTTP puede no permitir notificaciones.
-
-## Publicación en Internet
-Despliega la carpeta en un servidor Python/Flask que permanezca encendido (VPS, Render, Railway u otro host compatible). Configura:
-- `CHECK_INTERVAL_SECONDS=60`
-- `PORT` según el proveedor
-
-No uses el servidor de desarrollo de Flask para una publicación pública. Para producción, usa Gunicorn:
-```bash
-pip install gunicorn
-gunicorn -w 1 --threads 8 -b 0.0.0.0:$PORT app:app
-```
-Mantén un solo worker porque el planificador y el estado en memoria están dentro del proceso. Para producción robusta conviene separar el programador de comprobaciones del servidor web y usar una base de datos persistente.
-
-## Qué se consulta
-Muestras regionales:
-- España, Alemania, Francia, Reino Unido, Italia, Países Bajos, Polonia e Irlanda.
-- La fuente es `status.playstation.com`, no una API privada de Sony.
-- El historial se guarda en SQLite (`monitor.db`).
+## Notificaciones
+La interfaz ofrece notificaciones del navegador cuando el panel está abierto y recibe cambios. No implementa notificaciones push persistentes con el navegador cerrado.
 
 ## Limitaciones
-- La página oficial puede cambiar su HTML; si ocurre, el parser podría mostrar "Sin datos". Comprueba siempre el enlace oficial.
-- Las páginas regionales no prueban que existan centros de datos separados; son páginas/localizaciones regionales de estado.
-- La frecuencia de 60 segundos es la frecuencia de consulta de este monitor, no la frecuencia de actualización de Sony.
-- Las notificaciones del navegador se generan mientras el panel está abierto y recibe cambios. No es un servicio push persistente cuando el navegador está cerrado.
-- No se puede conocer la carga interna de los servidores, las colas de descarga ni el número de descargas de GTA VI sin datos publicados por Sony.
-- Los informes de usuarios de Downdetector no se incorporan automáticamente porque no hay una API pública general garantizada; no se debe hacer scraping que incumpla sus condiciones.
-
-## Privacidad
-No se solicita cuenta PSN, contraseña, NPSSO ni credenciales de PlayStation. No recopila datos personales de los jugadores.
+- Sony puede cambiar la estructura HTML y el parser podría mostrar `unknown`.
+- La latencia medida es la del servidor Railway hacia cada página regional, no la latencia desde cada país europeo.
+- Una respuesta HTTP correcta no garantiza que el servicio de juego esté operativo.
+- No se usan credenciales ni cuentas PSN.
