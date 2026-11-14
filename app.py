@@ -20,6 +20,7 @@ if DB_DIR:
 
 INTERVAL = max(30, int(os.getenv("CHECK_INTERVAL_SECONDS", "60")))
 TIMEOUT = 15
+# VERSION_DIAGNOSTICO_20261114
 
 REGIONS = {
     "España": "https://status.playstation.com/es-es/",
