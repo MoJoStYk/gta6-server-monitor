@@ -1,68 +1,35 @@
+'use strict';
 const $=id=>document.getElementById(id);
-const statusLabel={operational:"OPERATIVO",degraded:"DEGRADADO",outage:"CAÍDA PUBLICADA",unreachable:"SIN LECTURA",unknown:"SIN DATOS"};
-let previous={};
-let history=[];
-const colors={operational:"#48d597",degraded:"#ffc857",outage:"#ff657a",unreachable:"#778195",unknown:"#778195"};
-
-function fmtTime(s){if(!s)return "—";return new Date(s).toLocaleString("es-ES",{dateStyle:"short",timeStyle:"medium"});}
-function overallStatus(regions){
- const valid=regions.filter(r=>r.status!=="unreachable"&&r.status!=="unknown");
- if(!valid.length)return "unknown";
- if(valid.some(r=>r.status==="outage"))return "outage";
- if(valid.some(r=>r.status==="degraded"))return "degraded";
- return "operational";
+const countries=[['España','🇪🇸'],['Alemania','🇩🇪'],['Francia','🇫🇷'],['Reino Unido','🇬🇧'],['Italia','🇮🇹'],['Países Bajos','🇳🇱'],['Polonia','🇵🇱'],['Irlanda','🇮🇪']];
+const labels={operational:'OPERATIVO',degraded:'DEGRADADO',outage:'INCIDENCIA',unreachable:'SIN CONEXIÓN',unknown:'SIN DATOS'};
+const serviceIcons={'Gestión de cuentas':'♙','Juegos y redes sociales':'◈','PlayStation Store':'▣'};
+let data=null,history=[],selected='España',filter='all',previous={},seconds=60,busy=false,hasLoaded=false;
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const state=s=>['operational','degraded','outage','unreachable','unknown'].includes(s)?s:'unknown';
+const statusText=s=>labels[state(s)];
+function fmtDate(s){if(!s)return 'Pendiente';const d=new Date(s);return Number.isNaN(d.getTime())?'Fecha desconocida':d.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function flag(name){return countries.find(c=>c[0]===name)?.[1]||'🌍';}
+function overallStatus(rs){if(!rs.length)return 'unknown';if(rs.some(r=>r.status==='outage'))return 'outage';if(rs.some(r=>r.status==='degraded'))return 'degraded';if(rs.some(r=>!['operational','outage','degraded'].includes(r.status)))return 'unknown';return 'operational';}
+function render(){if(!data)return;const rs=Array.isArray(data.regions)?data.regions:[];const ok=rs.filter(r=>r.status==='operational').length;const bad=rs.filter(r=>['outage','degraded'].includes(r.status)).length;const missing=rs.filter(r=>!['operational','outage','degraded'].includes(r.status)).length;const overall=overallStatus(rs);
+ $('updated').textContent=fmtDate(data.updated_at);$('overall').className='hero-status '+overall;$('overall').textContent=overall==='operational'?'Todo operativo':overall==='degraded'?'Servicio degradado':overall==='outage'?'Incidencia detectada':'Datos incompletos';$('overall-note').textContent=overall==='operational'?'Sin incidencias publicadas en los ocho países':overall==='unknown'?'Una o más regiones no tienen datos fiables':'Sony ha publicado incidencias en alguna región';
+ $('online-count').innerHTML=ok+' <span>/ 8</span>';$('online-note').textContent=missing?`${missing} región(es) sin datos`:'Según los datos publicados';$('incident-count').textContent=bad;$('incident-note').textContent=bad?'Regiones con incidencias':'Ninguna incidencia detectada';
+ const times=rs.map(r=>r.latency_ms).filter(x=>typeof x==='number'&&Number.isFinite(x));$('latency').innerHTML=times.length?Math.round(Math.max(...times))+' <span>ms</span>':'— <span>ms</span>';
+ $('availability').textContent=rs.length?`${ok}/${rs.length}`:'—';$('availability-ring').style.setProperty('--percent',rs.length?100*ok/rs.length:0);$('availability-ring').style.setProperty('--ring-color',overall==='operational'?'var(--green)':overall==='outage'?'var(--red)':overall==='degraded'?'var(--yellow)':'var(--neutral)');
+ const shown=rs.filter(r=>filter==='all'||(filter==='operational'?r.status==='operational':r.status!=='operational'));
+ $('regions').innerHTML=shown.length?shown.map(r=>`<button class="region-card ${selected===r.region?'selected':''}" data-region="${safe(r.region)}" aria-label="Ver servicios de ${safe(r.region)}"><div class="region-card-top"><span class="flag">${flag(r.region)}</span><span class="status-chip ${state(r.status)}">${statusText(r.status)}</span></div><div class="region-name">${safe(r.region)}</div><div class="region-detail">${typeof r.latency_ms==='number'?Math.round(r.latency_ms)+' ms':'Sin respuesta'} · ${Object.keys(r.services||{}).length} servicios seguidos</div></button>`).join(''):'<div class="empty-state">No hay países que coincidan con este filtro.</div>';
+ $('regions').querySelectorAll('[data-region]').forEach(el=>el.addEventListener('click',()=>{selected=el.dataset.region;render();}));renderServices(rs);maybeNotify(rs);
 }
-function serviceAggregate(regions,key){
- const vals=regions.map(r=>Object.values(r.services||{})).flat();
- const s=regions.map(r=>r.services||{}).map(x=>key==="store"?x["PlayStation Store"]:x["Juegos y redes sociales"]).filter(Boolean);
- if(s.includes("outage"))return "outage";if(s.includes("degraded"))return "degraded";
- if(s.length&&s.every(x=>x==="operational"))return "operational";return "unknown";
+function renderServices(rs){let r=rs.find(x=>x.region===selected);if(!r){r=rs[0];if(!r){$('services').innerHTML='<div class="empty-state">Sin datos disponibles.</div>';return;}selected=r.region;}$('selected-country').textContent=flag(r.region)+' '+r.region;const entries=Object.entries(r.services||{});$('services').innerHTML=entries.length?entries.map(([name,s])=>`<div class="service-row"><div class="service-icon">${serviceIcons[name]||'◉'}</div><div class="service-title">${safe(name)}<span class="service-sub">Estado publicado para ${safe(r.region)}</span></div><span class="service-state ${state(s)}">● ${statusText(s)}</span></div>`).join(''):'<div class="empty-state">No hay detalles de servicios para este país.</div>'}
+function maybeNotify(rs){const next={};for(const r of rs){next[r.region]=r.status;if(hasLoaded&&previous[r.region]&&previous[r.region]!==r.status&&['outage','degraded'].includes(r.status)&&'Notification'in window&&Notification.permission==='granted')new Notification('PSN · Incidencia publicada',{body:`${r.region}: ${statusText(r.status)}`,tag:'psn-'+r.region});}previous=next;hasLoaded=true;}
+async function refresh(){if(busy)return;busy=true;$('refresh-now').disabled=true;try{const response=await fetch('/api/status',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);data=await response.json();seconds=Math.max(30,Number(data.next_check_seconds)||60);render();await loadHistory();}catch(err){$('overall').textContent='Error de conexión';$('overall').className='hero-status unknown';$('overall-note').textContent='No se ha podido consultar el monitor: '+err.message;}finally{busy=false;$('refresh-now').disabled=false;}}
+async function loadHistory(){try{const response=await fetch('/api/history?hours='+encodeURIComponent($('period').value),{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);const result=await response.json();history=Array.isArray(result)?result:[];renderHistory();}catch(err){$('history-chart').innerHTML='<div class="empty-state">No se ha podido cargar el historial.</div>';}}
+function renderHistory(){if(!history.length){$('history-chart').innerHTML='<div class="empty-state">Aún no hay registros para este periodo.</div>';return;}
+ const end=Date.now(),hours=Number($('period').value),start=end-hours*3600000,slots=48,slotWidth=(end-start)/slots;
+ const groups=new Map(countries.map(([name])=>[name,Array.from({length:slots},()=>[])]));
+ for(const item of history){const t=Date.parse(item.time);if(!Number.isFinite(t)||t<start||t>end||!groups.has(item.region))continue;const i=Math.min(slots-1,Math.floor((t-start)/slotWidth));groups.get(item.region)[i].push(state(item.status));}
+ const priority=['outage','degraded','unknown','unreachable','operational'];const worst=arr=>priority.find(s=>arr.includes(s))||'empty';
+ $('history-chart').innerHTML=countries.map(([name,emoji])=>`<div class="history-row"><span class="history-name">${emoji} ${safe(name)}</span><div class="history-bar" role="img" aria-label="Historial de ${safe(name)}">${groups.get(name).map((arr,i)=>`<span class="history-cell ${worst(arr)}" title="${safe(name)} · ${new Date(start+i*slotWidth).toLocaleString('es-ES')} · ${arr.length?statusText(worst(arr)):'Sin registro'}"></span>`).join('')}</div></div>`).join('')+`<div class="history-axis"><span>Hace ${hours} h</span><span>Ahora</span></div>`;
 }
-function maybeNotify(regions){
- const now={};regions.forEach(r=>now[r.region]=r.status);
- const changed=[];
- for(const [region,status] of Object.entries(now)){
-   if(previous[region] && previous[region]!==status && ["outage","degraded","unreachable"].includes(status))changed.push(`${region}: ${statusLabel[status]}`);
- }
- previous=now;
- if(changed.length && Notification.permission==="granted"){
-   new Notification("GTA VI Monitor · Cambio detectado",{body:changed.join(" · "),tag:"psn-status-change"});
- }
-}
-function render(data){
- const rs=data.regions||[];
- $("updated").textContent=fmtTime(data.updated_at);
- const overall=overallStatus(rs);
- $("overall").textContent=statusLabel[overall];$("overall").className=overall;
- $("overall-note").textContent=overall==="operational"?"Sin incidencias publicadas en las regiones consultadas":overall==="unknown"?"No hay datos suficientes":"Se ha detectado una incidencia publicada";
- const store=serviceAggregate(rs,"store"), gaming=serviceAggregate(rs,"gaming");
- $("store").textContent=statusLabel[store];$("store").className=store;
- $("gaming").textContent=statusLabel[gaming];$("gaming").className=gaming;
- $("failed").textContent=rs.filter(r=>["unreachable","unknown"].includes(r.status)).length;
- $("regions").innerHTML=rs.map(r=>`<article class="region"><div class="region-top"><span>${r.region}</span><span class="${r.status}">●</span></div><b class="${r.status}">${statusLabel[r.status]||"SIN DATOS"}</b><small>${r.latency_ms??"—"} ms · ${r.detail||""}</small></article>`).join("");
- maybeNotify(rs);
-}
-async function refresh(){
- try{const r=await fetch("/api/status",{cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);render(await r.json());await loadHistory();}
- catch(e){$("overall").textContent="ERROR DE MONITOR";$("overall").className="unreachable";$("overall-note").textContent=e.message;}
-}
-async function loadHistory(){
- try{const r=await fetch("/api/history?hours="+$("period").value);history=await r.json();drawChart();}catch(e){}
-}
-function drawChart(){
- const c=$("chart"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
- c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
- const names=["España","Alemania","Francia","Reino Unido","Italia","Países Bajos","Polonia","Irlanda"];
- const vals={operational:1,degraded:2,outage:3,unreachable:0,unknown:0};
- const rows=history.filter(x=>x.region==="España");
- if(!rows.length){ctx.fillStyle="#9aa5b8";ctx.font="13px system-ui";ctx.fillText("El histórico aparecerá después de las primeras comprobaciones.",12,30);return;}
- const plot={x:34,y:12,w:w-48,h:h-42};ctx.strokeStyle="#293144";ctx.fillStyle="#9aa5b8";ctx.font="10px system-ui";
- for(let i=0;i<4;i++){let y=plot.y+plot.h-i*plot.h/3;ctx.beginPath();ctx.moveTo(plot.x,y);ctx.lineTo(plot.x+plot.w,y);ctx.stroke();ctx.fillText(["Sin lectura","Operativo","Degradado","Caída"][i],0,y+3);}
- const step=plot.w/Math.max(rows.length-1,1);
- rows.forEach((r,i)=>{let x=plot.x+i*step,y=plot.y+plot.h-(vals[r.status]||0)*plot.h/3;ctx.fillStyle=colors[r.status]||colors.unknown;ctx.beginPath();ctx.arc(x,y,2.2,0,Math.PI*2);ctx.fill();});
- ctx.fillStyle="#9aa5b8";ctx.fillText("España · registros de estado publicados por Sony",plot.x, h-8);
-}
-$("notify").addEventListener("click",async()=>{if(!("Notification"in window)){alert("Este navegador no admite notificaciones.");return;}const p=await Notification.requestPermission();$("notify").textContent=p==="granted"?"Notificaciones activadas":"Notificaciones no permitidas";});
-$("period").addEventListener("change",loadHistory);
-window.addEventListener("resize",drawChart);
-refresh();setInterval(refresh,60000);
+$('refresh-now').addEventListener('click',refresh);$('period').addEventListener('change',loadHistory);document.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));render();}));
+$('notify').addEventListener('click',async()=>{if(!('Notification'in window)){alert('Este navegador no admite notificaciones.');return;}try{const permission=await Notification.requestPermission();$('notify').textContent=permission==='granted'?'✓ Avisos activados':'Avisos no permitidos';}catch(e){alert('No se han podido activar las notificaciones.');}});
+setInterval(()=>{$('countdown').textContent=Math.max(0,seconds--)+' s';},1000);setInterval(refresh,60000);refresh();
