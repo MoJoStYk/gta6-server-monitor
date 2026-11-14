@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10131c">
+<title>GTA VI Server Monitor</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <div><div class="eyebrow">MONITORIZACIÓN EUROPEA · PLAYSTATION 5</div><h1>GTA VI <span>SERVER MONITOR</span></h1>
+  <p>Estado de PlayStation Network y PlayStation Store por región</p></div>
+  <div class="live"><i></i> ACTUALIZACIÓN AUTOMÁTICA</div>
+</header>
+<main>
+<section class="topline">
+  <div><small>ÚLTIMA COMPROBACIÓN</small><strong id="updated">Esperando primera lectura…</strong></div>
+  <div><small>FRECUENCIA</small><strong>Cada 60 segundos</strong></div>
+  <div><small>REGIONES</small><strong>8 puntos europeos</strong></div>
+  <button id="notify">Activar notificaciones</button>
+</section>
+<section class="summary">
+  <article class="tile"><small>ESTADO EUROPEO</small><b id="overall" class="unknown">CONSULTANDO</b><span id="overall-note">Esperando datos oficiales</span></article>
+  <article class="tile"><small>PLAYSTATION STORE</small><b id="store" class="unknown">—</b><span>Componente oficial</span></article>
+  <article class="tile"><small>JUEGOS Y REDES</small><b id="gaming" class="unknown">—</b><span>Componente oficial</span></article>
+  <article class="tile"><small>REGIONES SIN LECTURA</small><b id="failed">—</b><span>Fallos de consulta no equivalen a caída de PSN</span></article>
+</section>
+<section class="panel">
+  <div class="section-head"><div><h2>Estado por región</h2><p>Lectura de páginas oficiales regionales de Sony</p></div><span class="subtle">Europa</span></div>
+  <div id="regions" class="regions"><div class="loading">Cargando regiones…</div></div>
+</section>
+<section class="panel">
+  <div class="section-head"><div><h2>Historial de comprobaciones</h2><p>Registros guardados por este monitor</p></div>
+  <select id="period"><option value="24">24 horas</option><option value="72">72 horas</option><option value="168">7 días</option></select></div>
+  <div class="chart-wrap"><canvas id="chart" height="150"></canvas></div>
+  <div class="legend"><span><i class="green"></i>Operativo</span><span><i class="yellow"></i>Degradado</span><span><i class="red"></i>Caída publicada</span><span><i class="gray"></i>Sin lectura</span></div>
+  <p class="note">La gráfica refleja estados publicados por Sony, no el porcentaje de utilización ni la carga interna de sus servidores.</p>
+</section>
+<section class="panel">
+  <div class="section-head"><div><h2>Qué mide y qué no mide</h2><p>Interpretación correcta de los indicadores</p></div></div>
+  <div class="explain">
+    <p><b>✓ Sí mide:</b> disponibilidad publicada por Sony, lectura de cada página regional, tiempo de respuesta de la página y cambios de estado detectados.</p>
+    <p><b>✕ No mide:</b> número de jugadores descargando GTA 6, ancho de banda total de PSN, colas internas de descarga ni porcentaje real de saturación de Sony.</p>
+    <p><b>Importante:</b> “Sin lectura” significa que el monitor no pudo consultar la fuente; no significa que PlayStation esté caída.</p>
+  </div>
+</section>
+<footer>Monitor independiente y no afiliado a Sony. Fuente primaria: status.playstation.com. <a href="https://status.playstation.com/es-es/" target="_blank" rel="noreferrer">Abrir estado oficial</a></footer>
+</main>
+<script src="/static/app.js"></script>
+</body></html>
