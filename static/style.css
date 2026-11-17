@@ -363,3 +363,41 @@ body.motion-off *,body.motion-off *::before,body.motion-off *::after{animation:n
  .collage-art{height:230px!important}
  .collage-art .collage-image{object-fit:contain}
 }
+
+/* 3.1.1: true full-bleed hero, no blurred bands or empty side gutters. */
+.intro .collage-art{
+  position:relative!important;display:block!important;width:100%!important;
+  height:clamp(300px,33vw,455px)!important;overflow:hidden!important;
+  background:#1b0b32 url('/static/gta6-collage-panoramica.webp?v=3-1-1') center center / cover no-repeat!important;
+  isolation:isolate;
+}
+.intro .collage-art::before{content:none!important;display:none!important;animation:none!important}
+.intro .collage-art .collage-image{
+  position:absolute!important;inset:0!important;z-index:1!important;
+  display:block!important;width:100%!important;height:100%!important;
+  object-fit:cover!important;object-position:center center!important;
+  max-width:none!important;max-height:none!important;
+  filter:saturate(1.1) contrast(1.035)!important;
+}
+.intro .collage-art .cinematic-halo{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,rgba(17,7,33,.22),transparent 24%,transparent 74%,rgba(17,7,33,.22)),
+  linear-gradient(180deg,rgba(15,5,30,.09),transparent 65%,rgba(15,5,30,.34))!important;
+}
+.intro .collage-art .cinematic-scan{z-index:3!important;mix-blend-mode:screen;opacity:.42!important}
+.intro .collage-art::after{content:none!important;display:none!important;animation:none!important}
+@keyframes vc-cinema-image-drift{0%,100%{transform:scale(1.012) translate3d(-.15%,0,0)}50%{transform:scale(1.035) translate3d(.15%,-.3%,0)}}
+@media(prefers-reduced-motion:no-preference){
+ body:not(.motion-off) .intro .collage-art .collage-image{
+  animation:vc-cinema-image-drift 22s ease-in-out infinite!important;
+  transition:filter .4s ease-out!important;
+ }
+}
+body.motion-off .intro .collage-art .collage-image{animation:none!important;transform:none!important}
+body.motion-off .intro .collage-art .cinematic-scan{animation:none!important;opacity:0!important}
+@media(prefers-reduced-motion:reduce){
+ .intro .collage-art .collage-image{animation:none!important;transform:none!important}
+ .intro .collage-art .cinematic-scan{animation:none!important;opacity:0!important}
+}
+@media(max-width:800px){.intro .collage-art{height:clamp(245px,43vw,360px)!important}}
+@media(max-width:500px){.intro .collage-art{height:230px!important}}
