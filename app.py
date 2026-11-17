@@ -511,75 +511,9 @@ def api_rockstar_history():
 
 
 
-# THE WIRE: noticias RSS gratuitas. No requiere X_BEARER_TOKEN ni créditos.
-# Las fuentes son búsquedas RSS de Google News; los enlaces conducen a los artículos originales.
-_news_lock = threading.Lock()
-_news_cache = {"expires": datetime.min.replace(tzinfo=timezone.utc), "payload": None}
-NEWS_FEEDS = [
-    ("GTA VI", '"GTA 6" OR "GTA VI"'),
-    ("Rockstar Games", '"Rockstar Games" GTA'),
-]
-
-
-def _news_feed_items(topic, search_term):
-    url = "https://news.google.com/rss/search?" + urlencode({
-        "q": search_term, "hl": "es", "gl": "ES", "ceid": "ES:es"
-    })
-    response = requests.get(url, timeout=12, headers={
-        "User-Agent": "Mozilla/5.0 (compatible; ViceCityNewsroom/3.6; RSS reader)",
-        "Accept": "application/rss+xml, application/xml, text/xml"
-    })
-    response.raise_for_status()
-    root = ET.fromstring(response.content)
-    posts = []
-    for entry in root.findall("./channel/item")[:30]:
-        title = (entry.findtext("title") or "").strip()
-        link = (entry.findtext("link") or "").strip()
-        source = (entry.findtext("source") or topic).strip()
-        published = (entry.findtext("pubDate") or "").strip()
-        if not title or not link or not link.startswith("https://"):
-            continue
-        try:
-            date = parsedate_to_datetime(published).astimezone(timezone.utc).isoformat()
-        except (ValueError, TypeError, OverflowError):
-            date = ""
-        posts.append({
-            "id": hashlib.sha256(link.encode("utf-8")).hexdigest()[:20],
-            "text": title, "title": title, "url": link, "link": link,
-            "username": source, "source": source, "topic": topic,
-            "created_at": date, "metrics": {}, "engagement": 0
-        })
-    return posts
-
-
-@app.route("/api/news")
-def api_news():
-    now = datetime.now(timezone.utc)
-    with _news_lock:
-        if _news_cache["payload"] is not None and now < _news_cache["expires"]:
-            return jsonify(_news_cache["payload"])
-        posts = []
-        errors = []
-        for topic, query in NEWS_FEEDS:
-            try:
-                posts.extend(_news_feed_items(topic, query))
-            except (requests.RequestException, ET.ParseError, ValueError) as exc:
-                errors.append(topic)
-                app.logger.warning("RSS news unavailable (%s): %s", topic, exc)
-        unique = {item["url"]: item for item in posts}
-        items = sorted(unique.values(), key=lambda x: x["created_at"], reverse=True)[:50]
-        if items:
-            payload = {"state": "ok", "items": items, "source": "RSS público",
-                       "fetched_at": now.isoformat(), "ranking": "publication_date",
-                       "popularity_available": False}
-            ttl = timedelta(minutes=15)
-        else:
-            payload = {"state": "unavailable" if errors else "empty", "items": [],
-                       "source": "RSS público", "fetched_at": now.isoformat(),
-                       "popularity_available": False}
-            ttl = timedelta(minutes=3)
-        _news_cache.update(payload=payload, expires=now + ttl)
-        return jsonify(payload)
+# THE WIRE Premium 3.7: RSS gratuito independiente del monitor de servicios.
+from free_news import register_free_news
+register_free_news(app)
 
 
 @app.route("/health")

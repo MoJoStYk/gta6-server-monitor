@@ -558,3 +558,11 @@ body.motion-off .intro > .collage-art .collage-image{animation:none!important;tr
 @media(max-width:950px){.vc-news-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vc-news-card:first-child{grid-column:span 2}}
 @media(max-width:620px){.vc-menu-masthead{padding:22px 20px}.vc-menu-heading h2{font-size:54px!important}.vc-menu-stamp{font-size:45px;padding:5px}.vc-news-toolbar{padding:16px 20px!important;align-items:flex-start;flex-direction:column}.vc-news-grid{grid-template-columns:1fr;padding:0 20px 20px}.vc-news-card:first-child{grid-column:span 1}.vc-news-statusbar{padding:10px 20px}.vc-news-statusbar-right{display:none}.vc-news-tab{padding:12px!important;font-size:11px!important}.vc-news-state{padding:0 20px}.vc-news-footnote{padding:0 20px 20px}}
 @media(prefers-reduced-motion:reduce){.vc-news-tab,.vc-news-card{transition:none!important}.vc-news-card:hover,.vc-news-tab:hover{transform:none!important}}
+
+/* THE WIRE Premium 3.7 — newsroom refinements */
+.vc-news-card{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease!important}
+.vc-news-card-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.vc-news-card-head strong{overflow-wrap:anywhere}
+.vc-news-card a:focus-visible,.vc-news-tab:focus-visible,.vc-menu-external:focus-visible{outline:3px solid #77f5e8;outline-offset:4px}
+.vc-news-card a:hover{background:rgba(105,239,228,.14);text-decoration:underline}
+@media(max-width:620px){.vc-news-card{min-height:unset}.vc-news-card-head{gap:8px}}

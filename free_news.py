@@ -43,7 +43,7 @@ def _fetch(label, query):
         out.append({'id': link, 'text': title[:300], 'title': title[:300],
                     'username': publisher, 'publisher': publisher, 'category': label,
                     'created_at': when, 'url': link, 'metrics': {}, 'engagement': 0,
-                    'official': 'rockstar games' in publisher.lower()})
+                    'official': publisher.casefold().strip() in {'rockstar games', 'rockstar games newsroom'}})
     return out
 
 def register_free_news(app):
@@ -69,7 +69,7 @@ def register_free_news(app):
         # La pestaña "En tendencia" usa relevancia editorial, NO métricas sociales.
         for p in items:
             t = p['title'].lower()
-            p['relevance'] = (3 if ('gta vi' in t or 'gta 6' in t or 'grand theft auto vi' in t) else 0) + (1 if 'rockstar' in t else 0)
+            p['relevance'] = (3 if ('gta vi' in t or 'gta 6' in t or 'grand theft auto vi' in t) else 0) + (1 if 'rockstar' in t else 0) + (1 if p['official'] else 0)
         payload = {'state': 'ok' if items else 'unavailable', 'items': items,
                    'source': 'RSS público · Google News', 'ranking': 'relevancia editorial (no popularidad medida)',
                    'fetched_at': datetime.now(timezone.utc).isoformat(),
