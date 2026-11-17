@@ -67,13 +67,28 @@ async function refreshRockstar(){
   document.getElementById('rockstar-services').innerHTML=items.length?items.map(([name,s])=>`<div class="rockstar-service"><span>${rockstarEscape(name)}</span><b class="rockstar-state ${rockstarEscape(s)}">${rockstarLabels[s]||'SIN DATOS'}</b></div>`).join(''):'<div class="loading">Rockstar todavía no ha proporcionado datos interpretables.</div>';
  }catch(e){document.getElementById('rockstar-overall').textContent='SIN CONEXIÓN';document.getElementById('rockstar-services').textContent='No se ha podido consultar el monitor Rockstar.';}
 }
+// Historial por intervalos de tiempo: evita representar periodos sin datos como operativos.
+const rockstarOrder=['GTA Online · PS5','GTA Online · PS4','GTA Online · Xbox Series X|S','GTA Online · Xbox One','GTA Online · PC','Red Dead Online · PC','Autenticación Rockstar','Rockstar Games Launcher','Rockstar Store'];
+const rockstarSeverity={unknown:0,operational:1,degraded:2,outage:3,unreachable:3};
+function rockstarSlotTime(ts){return new Date(ts).toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}
 async function refreshRockstarHistory(){
  const node=document.getElementById('rockstar-history');const hours=Number(document.getElementById('rockstar-period').value);
  try{
   const r=await fetch('/api/rockstar/history?hours='+hours,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
-  const data=await r.json();if(!data.length){node.textContent='El historial de Rockstar comenzará con las próximas comprobaciones.';return;}
-  const byService=new Map();for(const item of data){if(!byService.has(item.service))byService.set(item.service,[]);byService.get(item.service).push(item);}
-  node.innerHTML=[...byService].map(([name,records])=>`<div class="rockstar-history-row"><span>${rockstarEscape(name)}</span><div class="rockstar-history-bar" aria-label="Historial ${rockstarEscape(name)}">${records.slice(-120).map(item=>`<i class="${rockstarEscape(item.status)}" title="${rockstarEscape(item.status)} · ${rockstarEscape(item.time)}"></i>`).join('')}</div></div>`).join('');
+  const data=await r.json();if(!Array.isArray(data)||!data.length){node.textContent='El historial de Rockstar comenzará con las próximas comprobaciones.';return;}
+  const end=Date.now(),start=end-hours*3600000,slots=48,slotDuration=(end-start)/slots;
+  const groups=new Map();for(const item of data){if(!item||typeof item.service!=='string')continue;const ts=Date.parse(item.time);if(!Number.isFinite(ts)||ts<start||ts>end)continue;
+   if(!groups.has(item.service))groups.set(item.service,Array(slots).fill('unknown'));
+   const i=Math.min(slots-1,Math.floor((ts-start)/slotDuration)),arr=groups.get(item.service),state=Object.hasOwn(rockstarSeverity,item.status)?item.status:'unknown';
+   if(rockstarSeverity[state]>rockstarSeverity[arr[i]])arr[i]=state;
+  }
+  const names=[...rockstarOrder.filter(n=>groups.has(n)),...[...groups.keys()].filter(n=>!rockstarOrder.includes(n)).sort()];
+  if(!names.length){node.textContent='No hay comprobaciones válidas para el periodo seleccionado.';return;}
+  node.innerHTML=names.map(name=>`<div class="rockstar-history-row"><span class="rockstar-history-name">${rockstarEscape(name)}</span><div class="rockstar-history-bar" role="group" aria-label="Historial ${rockstarEscape(name)}">${groups.get(name).map((state,i)=>{
+    const from=start+i*slotDuration,to=Math.min(end,from+slotDuration);
+    const label=rockstarLabels[state]||'SIN DATOS';const tooltip=`${name} | ${rockstarSlotTime(from)} – ${rockstarSlotTime(to)} | ${label}${state==='unknown'?' (sin lectura confirmada)':''}`;
+    return `<i class="${rockstarEscape(state)}" title="${rockstarEscape(tooltip)}" aria-label="${rockstarEscape(tooltip)}" tabindex="0" data-tooltip="${rockstarEscape(tooltip)}"></i>`;
+   }).join('')}</div></div>`).join('');
  }catch(e){node.textContent='No se ha podido cargar el historial Rockstar.';}
 }
 document.getElementById('rockstar-period').addEventListener('change',refreshRockstarHistory);
