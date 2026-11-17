@@ -401,3 +401,66 @@ body.motion-off .intro .collage-art .cinematic-scan{animation:none!important;opa
 }
 @media(max-width:800px){.intro .collage-art{height:clamp(245px,43vw,360px)!important}}
 @media(max-width:500px){.intro .collage-art{height:230px!important}}
+
+
+/* ==========================================================
+   PREMIUM 3.2 — FULL BLEED CINEMATIC HEADER
+   Root cause: legacy .intro>div:first-child { max-width:690px }
+   constrained the first child (.collage-art), creating gutters.
+   ========================================================== */
+.intro{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+}
+.intro > .collage-art,
+.intro > div:first-child{
+  box-sizing:border-box!important;
+  display:block!important;
+  position:relative!important;
+  flex:none!important;
+  align-self:stretch!important;
+  width:100%!important;
+  min-width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+}
+.intro > .collage-art{
+  height:clamp(265px,31vw,440px)!important;
+  background:#160a2b!important;
+  overflow:hidden!important;
+}
+.intro > .collage-art .collage-image{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  min-width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center 51%!important;
+  filter:saturate(1.08) contrast(1.05)!important;
+}
+.intro > .collage-art .cinematic-halo{
+  background:linear-gradient(90deg,rgba(18,7,39,.12),transparent 18%,transparent 80%,rgba(18,7,39,.12)),linear-gradient(180deg,rgba(20,8,38,.07),transparent 70%,rgba(20,8,38,.4))!important;
+}
+.intro > .intro-copy{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  flex:none!important;
+  align-self:stretch!important;
+}
+.intro > .refresh-card{z-index:6!important}
+@media(max-width:800px){
+  .intro > .collage-art{height:clamp(230px,45vw,360px)!important}
+}
+@media(max-width:500px){
+  .intro > .collage-art{height:clamp(180px,52vw,245px)!important}
+  .intro > .collage-art .collage-image{object-position:center center!important}
+}
