@@ -5,7 +5,7 @@ import threading
 import re
 from html.parser import HTMLParser
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import requests
 from flask import Flask, jsonify, render_template, request
@@ -505,6 +505,55 @@ def api_rockstar_history():
         conn.close()
     return jsonify([{"time": r[0], "service": r[1], "status": r[2], "latency_ms": r[3]} for r in rows])
 
+
+
+# X API: lectura bajo demanda con caché, independiente del monitor PSN/Rockstar.
+# Token exclusivamente en Railway Variables, nunca en HTML ni en GitHub.
+_news_lock = threading.Lock()
+_news_cache = {"expires": datetime.min.replace(tzinfo=timezone.utc), "payload": None}
+
+@app.route("/api/news")
+def api_news():
+    now = datetime.now(timezone.utc)
+    bearer = os.getenv("X_BEARER_TOKEN", "").strip()
+    if not bearer:
+        return jsonify({"state":"not_configured", "items":[], "source":"X API"})
+    with _news_lock:
+        if _news_cache["payload"] is not None and now < _news_cache["expires"]:
+            return jsonify(_news_cache["payload"])
+        query = os.getenv("X_NEWS_QUERY", '("GTA VI" OR "GTA 6" OR "Rockstar Games") -is:retweet')
+        params = {
+            "query": query,
+            "max_results": 50,
+            "tweet.fields": "created_at,public_metrics,author_id,lang",
+            "expansions": "author_id",
+            "user.fields": "username,name,verified",
+        }
+        try:
+            response = requests.get("https://api.x.com/2/tweets/search/recent",params=params,
+                headers={"Authorization":"Bearer " + bearer,"User-Agent":"ViceCityNewsroom/3.5"}, timeout=12)
+            if response.status_code == 429:
+                payload={"state":"rate_limited","items":[],"source":"X API"}
+                _news_cache.update(payload=payload,expires=now+timedelta(minutes=5))
+                return jsonify(payload)
+            response.raise_for_status()
+            body=response.json()
+            users={str(u.get("id")):u.get("username","") for u in body.get("includes",{}).get("users",[])}
+            posts=[]
+            for item in body.get("data",[]):
+                metrics=item.get("public_metrics") or {}
+                engagement=sum(int(metrics.get(k,0) or 0) for k in ("like_count","retweet_count","reply_count","quote_count"))
+                posts.append({"id":str(item.get("id","")),"text":item.get("text",""),
+                    "username":users.get(str(item.get("author_id","")),""),
+                    "created_at":item.get("created_at",""),"metrics":metrics,"engagement":engagement})
+            payload={"state":"ok","items":posts,"source":"X API",
+                "fetched_at":now.isoformat(),"ranking":"engagement in fetched sample"}
+            _news_cache.update(payload=payload,expires=now+timedelta(minutes=15))
+            return jsonify(payload)
+        except (requests.RequestException, ValueError, TypeError):
+            payload={"state":"unavailable","items":[],"source":"X API"}
+            _news_cache.update(payload=payload,expires=now+timedelta(minutes=3))
+            return jsonify(payload)
 
 @app.route("/health")
 def health():

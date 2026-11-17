@@ -464,3 +464,97 @@ body.motion-off .intro .collage-art .cinematic-scan{animation:none!important;opa
   .intro > .collage-art{height:clamp(180px,52vw,245px)!important}
   .intro > .collage-art .collage-image{object-position:center center!important}
 }
+
+/* PREMIUM 3.3 · Cinematic Ultra */
+.intro > .collage-art{height:clamp(340px,35vw,490px)!important;isolation:isolate}
+.intro > .collage-art .collage-image{object-position:center 49%!important}
+/* Glass card: readable over busy parts of the collage. */
+.intro > .refresh-card{
+  top:18px!important;right:18px!important;left:auto!important;
+  padding:12px 15px!important;max-width:min(265px,calc(100% - 36px))!important;
+  border:1px solid rgba(255,176,236,.65)!important;
+  background:rgba(20,10,43,.65)!important;
+  box-shadow:0 12px 38px rgba(9,2,30,.4),inset 0 1px rgba(255,255,255,.13)!important;
+  backdrop-filter:blur(15px) saturate(1.3)!important;
+  -webkit-backdrop-filter:blur(15px) saturate(1.3)!important;
+  border-radius:17px!important;
+}
+@keyframes vc-ultra-pan{
+  0%,100%{transform:scale(1.025) translate3d(-.45%,0,0)}
+  50%{transform:scale(1.045) translate3d(.45%,-.25%,0)}
+}
+@media(prefers-reduced-motion:no-preference){
+ body:not(.motion-off) .intro > .collage-art .collage-image{animation:vc-ultra-pan 28s ease-in-out infinite!important}
+}
+body.motion-off .intro > .collage-art .collage-image{animation:none!important;transform:none!important}
+@media(prefers-reduced-motion:reduce){.intro > .collage-art .collage-image{animation:none!important;transform:none!important}}
+@media(max-width:800px){.intro > .collage-art{height:clamp(275px,47vw,400px)!important}}
+@media(max-width:500px){
+ .intro > .collage-art{height:clamp(220px,56vw,295px)!important}
+ .intro > .refresh-card{top:10px!important;right:10px!important;max-width:220px!important;padding:8px 10px!important}
+}
+
+/* PREMIUM 3.5 — Vice City Newsroom */
+.vc-news{margin-top:22px;border:1px solid rgba(248,119,210,.58);background:linear-gradient(125deg,rgba(56,22,73,.87),rgba(19,17,49,.96));box-shadow:0 12px 45px rgba(7,2,24,.2)}
+.vc-news-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 14px}
+.vc-news-toolbar>span{font-size:12px;color:#d4b7dc}
+.vc-news-tabs{display:flex;gap:6px;padding:4px;border:1px solid rgba(252,159,218,.38);border-radius:12px;background:rgba(12,8,29,.35)}
+.vc-news-tab{border:0;border-radius:9px;padding:10px 16px;color:#f4d8f5;background:transparent;cursor:pointer;font:inherit;font-size:13px}
+.vc-news-tab.active{background:linear-gradient(120deg,#f24eae,#9855d8);color:white;box-shadow:0 4px 16px rgba(241,67,171,.2)}
+.vc-news-tab:focus-visible,.vc-news-card a:focus-visible{outline:2px solid #58efd3;outline-offset:3px}
+.vc-news-state{margin:8px 0 14px;color:#f2d2e8;font-size:13px}
+.vc-news-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.vc-news-card{min-width:0;padding:17px;border:1px solid rgba(255,156,218,.32);border-radius:15px;background:rgba(14,12,37,.7);transition:transform .25s,border-color .25s,box-shadow .25s}
+.vc-news-card:hover{transform:translateY(-4px);border-color:rgba(255,157,221,.8);box-shadow:0 12px 30px rgba(12,4,29,.4)}
+.vc-news-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#ffc4e7;font-size:12px}
+.vc-news-card-head strong{overflow-wrap:anywhere}
+.vc-news-card p{color:#fff1fb;line-height:1.5;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}
+.vc-news-card-meta{color:#bba5cb;font-size:12px;margin-bottom:12px}
+.vc-news-card a{color:#69e6f0;text-decoration:none;font-weight:700;font-size:13px}
+.vc-news-footnote{font-size:11px;color:#bca5c6;line-height:1.5;margin-top:15px}
+@media(max-width:950px){.vc-news-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.vc-news-grid{grid-template-columns:1fr}.vc-news-tab{padding:9px 11px}}
+@media(prefers-reduced-motion:reduce){.vc-news-card{transition:none}.vc-news-card:hover{transform:none}}
+
+
+/* PREMIUM 3.6 — VICE CITY / IN-GAME NEWS MENU */
+.vc-news{position:relative;overflow:hidden;margin-top:30px!important;padding:0!important;border:1px solid rgba(255,136,208,.65)!important;border-radius:20px!important;background:#110c26!important;box-shadow:0 24px 65px rgba(7,1,23,.4),0 0 0 1px rgba(115,66,157,.15) inset!important}
+.vc-news:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 90% 5%,rgba(254,94,169,.22),transparent 45%),radial-gradient(ellipse at 0% 90%,rgba(43,174,219,.12),transparent 55%),repeating-linear-gradient(0deg,transparent 0 53px,rgba(255,255,255,.016) 54px);z-index:0}
+.vc-news>*{position:relative;z-index:1}
+.vc-menu-masthead{padding:27px clamp(20px,3.5vw,48px) 25px;background:linear-gradient(110deg,rgba(70,24,85,.92),rgba(30,17,61,.72) 58%,rgba(18,12,38,.85));border-bottom:1px solid rgba(249,131,211,.3)}
+.vc-menu-overline{display:flex;align-items:center;justify-content:space-between;gap:12px;letter-spacing:.24em;font-size:10px;font-weight:900;color:#ffd0e9}
+.vc-menu-live{letter-spacing:.13em;color:#69f6c9;text-shadow:0 0 15px rgba(72,255,184,.55)}
+.vc-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:18px}
+.vc-menu-heading h2{font-size:clamp(48px,7vw,96px)!important;line-height:.93!important;letter-spacing:-.055em!important;margin:8px 0 13px!important;color:#fff0db!important;font-weight:1000!important;text-transform:uppercase;text-shadow:5px 6px 0 #712b80,10px 11px 0 rgba(7,2,25,.6)}
+.vc-menu-heading h2 em{font-style:italic;color:#ff83c9;text-shadow:5px 6px 0 #672578,10px 11px 0 rgba(7,2,25,.6)}
+.vc-menu-heading p{font-size:14px!important;color:#f3d7ef!important;max-width:530px}
+.vc-menu-stamp{font-size:clamp(45px,6vw,90px);font-weight:1000;font-style:italic;line-height:.75;letter-spacing:-.1em;color:#ff8ec7;text-shadow:4px 4px #612b99;transform:rotate(-8deg);padding:12px 25px 12px 0;opacity:.9}
+.vc-menu-stamp span{display:block;letter-spacing:.16em;font-size:11px;margin-top:15px;color:#fff4dd;text-shadow:none}
+.vc-news-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0!important;padding:18px clamp(20px,3.5vw,48px)!important;background:rgba(14,10,34,.65)}
+.vc-news-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0!important;background:transparent!important;border:0!important}
+.vc-news-tab{border:1px solid rgba(255,158,218,.3)!important;border-radius:5px!important;background:rgba(41,26,68,.85)!important;color:#e9c9e4!important;padding:13px 19px!important;font-size:12px!important;font-weight:900!important;letter-spacing:.09em!important;transform:skew(-5deg);transition:background .2s,transform .2s,border-color .2s!important}
+.vc-news-tab.active{background:linear-gradient(110deg,#f254ac,#b43db2)!important;color:white!important;border-color:#ffabd8!important;box-shadow:4px 4px 0 #5e286d,0 0 22px rgba(249,79,173,.25)!important}
+.vc-news-tab:hover{transform:skew(-5deg) translateY(-2px)}
+.vc-tab-index{font-size:10px;opacity:.75;margin-right:10px}
+.vc-menu-external{font-size:11px;font-weight:900;letter-spacing:.1em;color:#85eaf0;text-decoration:none;white-space:nowrap}
+.vc-news-statusbar{display:flex;gap:10px;align-items:center;padding:10px clamp(20px,3.5vw,48px);border-block:1px solid rgba(249,132,215,.19);background:rgba(11,8,30,.7);font-size:11px;color:#d7bedc;letter-spacing:.04em}
+.vc-status-led{width:7px;height:7px;border-radius:50%;background:#53edc0;box-shadow:0 0 10px #53edc0;flex:none}
+.vc-news-statusbar-right{margin-left:auto;letter-spacing:.15em;color:#d8a9d3;font-size:9px}
+.vc-news-state{padding:0 clamp(20px,3.5vw,48px);margin:19px 0 14px!important;color:#f9d4e8!important}
+.vc-news-grid{padding:0 clamp(20px,3.5vw,48px) 22px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.vc-news-card{position:relative;overflow:hidden;padding:19px!important;border-radius:6px!important;border:1px solid rgba(251,139,213,.36)!important;border-left:3px solid #f77abf!important;background:linear-gradient(150deg,rgba(65,33,87,.87),rgba(23,19,53,.94))!important;box-shadow:5px 5px 0 rgba(5,3,20,.28)!important;min-height:218px;display:flex;flex-direction:column}
+.vc-news-card:first-child{grid-column:span 2;background:linear-gradient(130deg,rgba(99,39,104,.9),rgba(28,23,63,.96))!important}
+.vc-news-card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#ff7abf,#ffcc85,#5ae6e1);opacity:.8}
+.vc-news-card-index{font-size:9px;font-weight:900;letter-spacing:.19em;color:#ffb9db;margin:0 0 16px}
+.vc-news-card-head{font-size:12px!important;gap:15px}
+.vc-news-card-head strong{color:#fff0e2}
+.vc-news-card-head span{color:#e0b9d8;white-space:nowrap}
+.vc-news-card p{font-size:14px!important;line-height:1.6!important;color:#fff0f7!important;flex:1;margin:16px 0!important}
+.vc-news-card:first-child p{font-size:clamp(15px,1.4vw,19px)!important;line-height:1.5!important}
+.vc-news-card-meta{font-size:11px!important;color:#d5b3d7!important}
+.vc-news-card a{align-self:flex-start;margin-top:4px;padding:8px 12px;border:1px solid rgba(110,236,230,.45);border-radius:3px;color:#7bf4e8!important;font-size:11px!important;letter-spacing:.06em;text-transform:uppercase}
+.vc-news-card:hover{transform:translateY(-5px)!important;border-color:#ff9ed8!important;box-shadow:5px 8px 0 rgba(10,4,31,.5),0 0 25px rgba(240,90,171,.18)!important}
+.vc-news-footnote{padding:0 clamp(20px,3.5vw,48px) 23px;margin-top:0!important;color:#bea7ce!important}
+@media(max-width:950px){.vc-news-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vc-news-card:first-child{grid-column:span 2}}
+@media(max-width:620px){.vc-menu-masthead{padding:22px 20px}.vc-menu-heading h2{font-size:54px!important}.vc-menu-stamp{font-size:45px;padding:5px}.vc-news-toolbar{padding:16px 20px!important;align-items:flex-start;flex-direction:column}.vc-news-grid{grid-template-columns:1fr;padding:0 20px 20px}.vc-news-card:first-child{grid-column:span 1}.vc-news-statusbar{padding:10px 20px}.vc-news-statusbar-right{display:none}.vc-news-tab{padding:12px!important;font-size:11px!important}.vc-news-state{padding:0 20px}.vc-news-footnote{padding:0 20px 20px}}
+@media(prefers-reduced-motion:reduce){.vc-news-tab,.vc-news-card{transition:none!important}.vc-news-card:hover,.vc-news-tab:hover{transform:none!important}}
