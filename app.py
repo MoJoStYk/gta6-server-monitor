@@ -3,6 +3,10 @@ import time
 import sqlite3
 import threading
 import re
+import hashlib
+import xml.etree.ElementTree as ET
+from urllib.parse import urlencode
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone, timedelta
@@ -507,53 +511,76 @@ def api_rockstar_history():
 
 
 
-# X API: lectura bajo demanda con caché, independiente del monitor PSN/Rockstar.
-# Token exclusivamente en Railway Variables, nunca en HTML ni en GitHub.
+# THE WIRE: noticias RSS gratuitas. No requiere X_BEARER_TOKEN ni créditos.
+# Las fuentes son búsquedas RSS de Google News; los enlaces conducen a los artículos originales.
 _news_lock = threading.Lock()
 _news_cache = {"expires": datetime.min.replace(tzinfo=timezone.utc), "payload": None}
+NEWS_FEEDS = [
+    ("GTA VI", '"GTA 6" OR "GTA VI"'),
+    ("Rockstar Games", '"Rockstar Games" GTA'),
+]
+
+
+def _news_feed_items(topic, search_term):
+    url = "https://news.google.com/rss/search?" + urlencode({
+        "q": search_term, "hl": "es", "gl": "ES", "ceid": "ES:es"
+    })
+    response = requests.get(url, timeout=12, headers={
+        "User-Agent": "Mozilla/5.0 (compatible; ViceCityNewsroom/3.6; RSS reader)",
+        "Accept": "application/rss+xml, application/xml, text/xml"
+    })
+    response.raise_for_status()
+    root = ET.fromstring(response.content)
+    posts = []
+    for entry in root.findall("./channel/item")[:30]:
+        title = (entry.findtext("title") or "").strip()
+        link = (entry.findtext("link") or "").strip()
+        source = (entry.findtext("source") or topic).strip()
+        published = (entry.findtext("pubDate") or "").strip()
+        if not title or not link or not link.startswith("https://"):
+            continue
+        try:
+            date = parsedate_to_datetime(published).astimezone(timezone.utc).isoformat()
+        except (ValueError, TypeError, OverflowError):
+            date = ""
+        posts.append({
+            "id": hashlib.sha256(link.encode("utf-8")).hexdigest()[:20],
+            "text": title, "title": title, "url": link, "link": link,
+            "username": source, "source": source, "topic": topic,
+            "created_at": date, "metrics": {}, "engagement": 0
+        })
+    return posts
+
 
 @app.route("/api/news")
 def api_news():
     now = datetime.now(timezone.utc)
-    bearer = os.getenv("X_BEARER_TOKEN", "").strip()
-    if not bearer:
-        return jsonify({"state":"not_configured", "items":[], "source":"X API"})
     with _news_lock:
         if _news_cache["payload"] is not None and now < _news_cache["expires"]:
             return jsonify(_news_cache["payload"])
-        query = os.getenv("X_NEWS_QUERY", '("GTA VI" OR "GTA 6" OR "Rockstar Games") -is:retweet')
-        params = {
-            "query": query,
-            "max_results": 50,
-            "tweet.fields": "created_at,public_metrics,author_id,lang",
-            "expansions": "author_id",
-            "user.fields": "username,name,verified",
-        }
-        try:
-            response = requests.get("https://api.x.com/2/tweets/search/recent",params=params,
-                headers={"Authorization":"Bearer " + bearer,"User-Agent":"ViceCityNewsroom/3.5"}, timeout=12)
-            if response.status_code == 429:
-                payload={"state":"rate_limited","items":[],"source":"X API"}
-                _news_cache.update(payload=payload,expires=now+timedelta(minutes=5))
-                return jsonify(payload)
-            response.raise_for_status()
-            body=response.json()
-            users={str(u.get("id")):u.get("username","") for u in body.get("includes",{}).get("users",[])}
-            posts=[]
-            for item in body.get("data",[]):
-                metrics=item.get("public_metrics") or {}
-                engagement=sum(int(metrics.get(k,0) or 0) for k in ("like_count","retweet_count","reply_count","quote_count"))
-                posts.append({"id":str(item.get("id","")),"text":item.get("text",""),
-                    "username":users.get(str(item.get("author_id","")),""),
-                    "created_at":item.get("created_at",""),"metrics":metrics,"engagement":engagement})
-            payload={"state":"ok","items":posts,"source":"X API",
-                "fetched_at":now.isoformat(),"ranking":"engagement in fetched sample"}
-            _news_cache.update(payload=payload,expires=now+timedelta(minutes=15))
-            return jsonify(payload)
-        except (requests.RequestException, ValueError, TypeError):
-            payload={"state":"unavailable","items":[],"source":"X API"}
-            _news_cache.update(payload=payload,expires=now+timedelta(minutes=3))
-            return jsonify(payload)
+        posts = []
+        errors = []
+        for topic, query in NEWS_FEEDS:
+            try:
+                posts.extend(_news_feed_items(topic, query))
+            except (requests.RequestException, ET.ParseError, ValueError) as exc:
+                errors.append(topic)
+                app.logger.warning("RSS news unavailable (%s): %s", topic, exc)
+        unique = {item["url"]: item for item in posts}
+        items = sorted(unique.values(), key=lambda x: x["created_at"], reverse=True)[:50]
+        if items:
+            payload = {"state": "ok", "items": items, "source": "RSS público",
+                       "fetched_at": now.isoformat(), "ranking": "publication_date",
+                       "popularity_available": False}
+            ttl = timedelta(minutes=15)
+        else:
+            payload = {"state": "unavailable" if errors else "empty", "items": [],
+                       "source": "RSS público", "fetched_at": now.isoformat(),
+                       "popularity_available": False}
+            ttl = timedelta(minutes=3)
+        _news_cache.update(payload=payload, expires=now + ttl)
+        return jsonify(payload)
+
 
 @app.route("/health")
 def health():
