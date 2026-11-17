@@ -53,3 +53,28 @@ function updateLaunchCountdown(){
 }
 updateLaunchCountdown();
 setInterval(updateLaunchCountdown,1000);
+
+// Rockstar: consulta independiente, sin modificar el renderizado de PSN.
+const rockstarLabels={operational:'OPERATIVO',degraded:'LIMITADO',outage:'CAÍDA',unknown:'SIN DATOS',unreachable:'SIN CONEXIÓN'};
+function rockstarEscape(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function refreshRockstar(){
+ try{
+  const r=await fetch('/api/rockstar/status',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+  const d=await r.json();const overall=document.getElementById('rockstar-overall');
+  const state=d.status||'unknown';overall.textContent=rockstarLabels[state]||'SIN DATOS';overall.className='rockstar-overall '+state;
+  document.getElementById('rockstar-updated').textContent=d.updated_at?'Consulta: '+new Date(d.updated_at).toLocaleString('es-ES'):'Esperando consulta';
+  const items=Object.entries(d.services||{});
+  document.getElementById('rockstar-services').innerHTML=items.length?items.map(([name,s])=>`<div class="rockstar-service"><span>${rockstarEscape(name)}</span><b class="rockstar-state ${rockstarEscape(s)}">${rockstarLabels[s]||'SIN DATOS'}</b></div>`).join(''):'<div class="loading">Rockstar todavía no ha proporcionado datos interpretables.</div>';
+ }catch(e){document.getElementById('rockstar-overall').textContent='SIN CONEXIÓN';document.getElementById('rockstar-services').textContent='No se ha podido consultar el monitor Rockstar.';}
+}
+async function refreshRockstarHistory(){
+ const node=document.getElementById('rockstar-history');const hours=Number(document.getElementById('rockstar-period').value);
+ try{
+  const r=await fetch('/api/rockstar/history?hours='+hours,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+  const data=await r.json();if(!data.length){node.textContent='El historial de Rockstar comenzará con las próximas comprobaciones.';return;}
+  const byService=new Map();for(const item of data){if(!byService.has(item.service))byService.set(item.service,[]);byService.get(item.service).push(item);}
+  node.innerHTML=[...byService].map(([name,records])=>`<div class="rockstar-history-row"><span>${rockstarEscape(name)}</span><div class="rockstar-history-bar" aria-label="Historial ${rockstarEscape(name)}">${records.slice(-120).map(item=>`<i class="${rockstarEscape(item.status)}" title="${rockstarEscape(item.status)} · ${rockstarEscape(item.time)}"></i>`).join('')}</div></div>`).join('');
+ }catch(e){node.textContent='No se ha podido cargar el historial Rockstar.';}
+}
+document.getElementById('rockstar-period').addEventListener('change',refreshRockstarHistory);
+refreshRockstar();refreshRockstarHistory();setInterval(()=>{refreshRockstar();refreshRockstarHistory();},60000);

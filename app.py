@@ -2,6 +2,8 @@ import os
 import time
 import sqlite3
 import threading
+import re
+from html.parser import HTMLParser
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
@@ -17,6 +19,19 @@ if DB_DIR:
 
 INTERVAL = max(30, int(os.getenv("CHECK_INTERVAL_SECONDS", "60")))
 TIMEOUT = 20
+ROCKSTAR_URL = "https://support.rockstargames.com/servicestatus"
+ROCKSTAR_SERVICES = {
+    "GTA Online · PS5": ("Grand Theft Auto Online", "PlayStation 5"),
+    "GTA Online · PS4": ("Grand Theft Auto Online", "PlayStation 4"),
+    "GTA Online · Xbox Series X|S": ("Grand Theft Auto Online", "Xbox Series X|S"),
+    "GTA Online · Xbox One": ("Grand Theft Auto Online", "Xbox One"),
+    "GTA Online · PC": ("Grand Theft Auto Online", "PC"),
+    "Red Dead Online · PC": ("Red Dead Online", "PC"),
+    "Autenticación Rockstar": ("Online Services", "Authentication"),
+    "Rockstar Games Launcher": ("Online Services", "Rockstar Games Launcher"),
+    "Rockstar Store": ("Online Services", "Store"),
+}
+
 PSN_DATA_URLS = {
     "SCEE": "https://status.playstation.com/data/statuses/region/SCEE.json",
     "SCEA": "https://status.playstation.com/data/statuses/region/SCEA.json",
@@ -40,6 +55,80 @@ SERVICE_NAMES = {
     "Account_Management": "Gestión de cuentas",
 }
 
+class _PageText(HTMLParser):
+    """Extrae texto visible; ignora scripts y estilos."""
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+        self.hidden = 0
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style", "noscript"):
+            self.hidden += 1
+    def handle_endtag(self, tag):
+        if tag in ("script", "style", "noscript"):
+            self.hidden = max(0, self.hidden - 1)
+    def handle_data(self, data):
+        if not self.hidden and data.strip():
+            self.parts.append(" ".join(data.split()))
+
+
+def parse_rockstar_status(html):
+    """Interpretación conservadora de texto visible de la página oficial.
+    Si Rockstar cambia su HTML, devuelve unknown, nunca un falso operativo.
+    """
+    parser = _PageText()
+    parser.feed(html)
+    text = "\n".join(parser.parts)
+    sections = ("Grand Theft Auto Online", "Red Dead Online", "Online Services", "Cfx")
+    status_pattern = re.compile(r"^(All services operational|Operational|Up|Limited|Degraded|Partial outage|Major outage|Down|Unavailable|Maintenance)$", re.I)
+    rows = [x.strip() for x in text.splitlines() if x.strip()]
+    # Solo se acepta una lectura si contiene la estructura pública esperada.
+    if not any(x == "Grand Theft Auto Online" for x in rows):
+        return {name: "unknown" for name in ROCKSTAR_SERVICES}
+    data = {}
+    section = None
+    for idx, row in enumerate(rows):
+        if row in sections:
+            section = row
+            continue
+        if section is None:
+            continue
+        if row not in {platform for sec, platform in ROCKSTAR_SERVICES.values() if sec == section}:
+            continue
+        following = rows[idx + 1:idx + 4]
+        match = next((v for v in following if status_pattern.fullmatch(v)), None)
+        if match is None:
+            continue
+        v = match.lower()
+        state = ("operational" if v in ("all services operational", "operational", "up")
+                 else "outage" if v in ("major outage", "down", "unavailable")
+                 else "degraded")
+        data[(section, row)] = state
+    return {name: data.get(pair, "unknown") for name, pair in ROCKSTAR_SERVICES.items()}
+
+
+def fetch_rockstar():
+    started = time.monotonic()
+    states = {name: "unknown" for name in ROCKSTAR_SERVICES}
+    error = None
+    try:
+        response = requests.get(ROCKSTAR_URL, timeout=TIMEOUT,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; ViceCityMonitor/2.5)", "Accept-Language": "en-US,en;q=0.9"})
+        response.raise_for_status()
+        states = parse_rockstar_status(response.text)
+        if all(x == "unknown" for x in states.values()):
+            error = "Rockstar no expone estados interpretables en el HTML recibido"
+    except (requests.RequestException, ValueError) as exc:
+        error = str(exc)[:180]
+        app.logger.warning("Rockstar status unavailable: %s", error)
+    statuses = list(states.values())
+    overall = worst_status(statuses)
+    return {"status": overall, "services": states, "updated_at": datetime.now(timezone.utc).isoformat(),
+            "latency_ms": int((time.monotonic() - started)*1000), "source": ROCKSTAR_URL,
+            "load_percent": None, "load_note": "Rockstar no publica porcentaje de ocupación",
+            "detail": error or "Estado publicado por Rockstar (no mide carga)"}
+
+
 app = Flask(__name__)
 
 lock = threading.Lock()
@@ -52,6 +141,7 @@ latest = {
     "updated_at": None,
     "next_check_seconds": INTERVAL
 }
+rockstar_latest = {"status": "unknown", "services": {}, "updated_at": None, "load_percent": None}
 
 
 def db():
@@ -70,6 +160,16 @@ def db():
         )
     """)
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS rockstar_checks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            checked_at TEXT NOT NULL,
+            service TEXT NOT NULL,
+            status TEXT NOT NULL,
+            latency_ms INTEGER
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_rockstar_time ON rockstar_checks(checked_at)")
     conn.execute("""
         CREATE INDEX IF NOT EXISTS idx_checks_time
         ON checks(checked_at)
@@ -204,9 +304,19 @@ def fetch_country_results():
 
 def run_check():
 
-    global latest
+    global latest, rockstar_latest
 
-    results = fetch_country_results()
+    # Dos fuentes independientes: si Rockstar falla, PSN sigue funcionando.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        psn_future = executor.submit(fetch_country_results)
+        rockstar_future = executor.submit(fetch_rockstar)
+        results = psn_future.result()
+        try:
+            rockstar_result = rockstar_future.result()
+        except Exception as exc:
+            app.logger.exception("Rockstar check failed: %s", exc)
+            rockstar_result = {"status": "unknown", "services": {}, "updated_at": datetime.now(timezone.utc).isoformat(),
+                "load_percent": None, "detail": "Error de lectura", "source": ROCKSTAR_URL}
 
     now = datetime.now(timezone.utc).isoformat()
 
@@ -216,6 +326,9 @@ def run_check():
 
         with conn:
 
+            for service, state in rockstar_result.get("services", {}).items():
+                conn.execute("INSERT INTO rockstar_checks(checked_at,service,status,latency_ms) VALUES(?,?,?,?)",
+                             (now, service, state, rockstar_result.get("latency_ms")))
             for item in results:
 
                 conn.execute(
@@ -243,6 +356,7 @@ def run_check():
 
     with lock:
 
+        rockstar_latest = rockstar_result
         latest = {
             "regions": results,
             "updated_at": now,
@@ -367,6 +481,29 @@ def api_history():
         }
         for row in rows
     ])
+
+
+@app.route("/api/rockstar/status")
+def api_rockstar_status():
+    with lock:
+        result = dict(rockstar_latest)
+    return jsonify(result)
+
+
+@app.route("/api/rockstar/history")
+def api_rockstar_history():
+    try:
+        hours = min(max(int(request.args.get("hours", 24)), 1), 720)
+    except (ValueError, TypeError):
+        hours = 24
+    conn = db()
+    try:
+        rows = conn.execute("SELECT checked_at, service, status, latency_ms FROM rockstar_checks "
+            "WHERE julianday(checked_at) >= julianday('now', ?) ORDER BY checked_at",
+            (f"-{hours} hours",)).fetchall()
+    finally:
+        conn.close()
+    return jsonify([{"time": r[0], "service": r[1], "status": r[2], "latency_ms": r[3]} for r in rows])
 
 
 @app.route("/health")
