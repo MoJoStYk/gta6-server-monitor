@@ -273,3 +273,43 @@ body{background:linear-gradient(180deg,#180924 0%,#170c2a 42%,#0b1024 100%)}
 .rockstar-analytics-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.rockstar-analytics-title h3{font-size:clamp(20px,2.4vw,29px);text-transform:uppercase;font-style:italic;margin:7px 0}.rockstar-analytics-title p{color:#d8c9e1;font-size:13px}.rs-window{border:1px solid #d47ab7;border-radius:24px;padding:8px 14px;color:#ffd7f0;font-size:12px;white-space:nowrap}
 .rs-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.rs-kpis article{border:1px solid rgba(245,141,207,.3);border-radius:12px;padding:15px;background:rgba(15,13,42,.55);min-width:0}.rs-kpis article span{font-size:10px;letter-spacing:.12em;color:#f7c3e5;font-weight:800}.rs-kpis article strong{display:block;font-size:clamp(24px,3vw,38px);line-height:1.4;color:#5aefc4;font-weight:900}.rs-kpis article small{font-size:11px;color:#cbbbd5}.rs-summary{margin:15px 0;color:#f7d8ee;font-size:13px;line-height:1.6}.rs-table-wrap{overflow-x:auto}.rs-table{width:100%;border-collapse:collapse;font-size:12px;min-width:710px}.rs-table th{text-align:left;color:#ffbee5;letter-spacing:.04em;font-size:10px}.rs-table td,.rs-table th{padding:11px 9px;border-bottom:1px solid rgba(255,255,255,.11)}.rs-table td:first-child{font-weight:700}.rs-distribution{display:flex;overflow:hidden;height:12px;min-width:120px;border-radius:8px;background:#625473}.rs-distribution i{display:block;height:100%}.rs-distribution .rs-ok{background:#35d6a1}.rs-distribution .rs-issue{background:#ff7a96}.rs-distribution .rs-unknown{background:#8e7d9e}.rs-note{font-size:11px;color:#c6b6d2;line-height:1.6;margin-top:12px}
 @media(max-width:900px){.rs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:540px){.rockstar-analytics{padding:13px}.rockstar-analytics-title{align-items:flex-start;flex-direction:column}.rs-kpis{gap:8px}.rs-kpis article{padding:11px}.rs-kpis article strong{font-size:26px}}
+
+/* Premium 2.8 — Rockstar incident tracker */
+.rs-incidents{margin:18px 0 26px;padding:22px;border:1px solid rgba(101,223,222,.42);border-radius:16px;background:linear-gradient(125deg,rgba(25,27,67,.85),rgba(64,24,74,.65))}
+.rs-incidents-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.rs-incidents-head h3{text-transform:uppercase;font-style:italic;font-size:clamp(20px,2.3vw,28px);margin:6px 0}.rs-incidents-head p{font-size:12px;color:#d9c9e6}.ri-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.ri-kpis article{border:1px solid rgba(244,125,209,.3);background:rgba(13,15,41,.65);padding:15px;border-radius:12px}.ri-kpis span{display:block;color:#ffcae9;font-size:10px;font-weight:800;letter-spacing:.08em}.ri-kpis strong{display:block;font-size:clamp(24px,3vw,37px);color:#53eac0;margin:6px 0}.ri-kpis small{color:#cbbbd5;font-size:11px}.ri-explain{margin:14px 0;color:#f3d8eb;font-size:13px;line-height:1.5}.ri-table{min-width:780px}.ri-table td{vertical-align:middle}.ri-severity{font-weight:800;font-size:11px;border-radius:6px;padding:5px 8px;white-space:nowrap;background:#6a4831;color:#ffe0a5}.ri-severity.outage{background:#743048;color:#ffd1e0}.ri-severity.degraded{background:#68502c;color:#ffe2a1}
+@media(max-width:700px){.rs-incidents{padding:13px}.rs-incidents-head{align-items:flex-start;flex-direction:column}.ri-kpis{grid-template-columns:1fr}.ri-kpis article{padding:11px}}
+
+
+/* GTA VI Premium 3.0 / NEON MOTION — purely visual; no changes to API or monitoring */
+.motion-toggle{border:1px solid rgba(255,154,219,.55);background:rgba(30,17,53,.76);color:#ffd6ed;border-radius:25px;padding:10px 13px;font-size:11px;font-weight:800;letter-spacing:.04em;white-space:nowrap;transition:background .2s,border-color .2s,transform .2s}
+.motion-toggle:hover{background:rgba(112,39,107,.65);border-color:#ff8bcd;transform:translateY(-1px)}
+.motion-toggle:focus-visible{outline:3px solid #5cefd1;outline-offset:3px}
+@keyframes vc-arrive{from{opacity:0;transform:translateY(17px)}to{opacity:1;transform:translateY(0)}}
+@keyframes vc-glow{0%,100%{filter:drop-shadow(0 0 5px rgba(255,99,188,.22))}50%{filter:drop-shadow(0 0 19px rgba(255,99,188,.65))}}
+@keyframes vc-sweep{0%{transform:translateX(-150%) skewX(-22deg)}100%{transform:translateX(450%) skewX(-22deg)}}
+@keyframes vc-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes vc-breathe{0%,100%{box-shadow:0 0 0 rgba(77,240,193,0),inset 0 0 0 rgba(77,240,193,0)}50%{box-shadow:0 0 24px rgba(77,240,193,.22),inset 0 0 10px rgba(77,240,193,.05)}}
+@keyframes vc-sunlight{0%,100%{opacity:.86;filter:saturate(1)}50%{opacity:1;filter:saturate(1.28)}}
+@keyframes vc-shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@media(prefers-reduced-motion:no-preference){
+body:not(.motion-off) .intro{animation:vc-arrive .7s ease-out both}
+body:not(.motion-off) .launch-section,body:not(.motion-off) .launch-countdown,body:not(.motion-off) .overview{animation:vc-arrive .8s .1s ease-out both}
+body:not(.motion-off) .rockstar-section{animation:vc-arrive .8s .18s ease-out both}
+body:not(.motion-off) .collage-art{position:relative;overflow:hidden}
+body:not(.motion-off) .collage-art:after{content:"";position:absolute;inset:-15% auto -15% -35%;width:18%;background:linear-gradient(90deg,transparent,rgba(255,223,248,.15),transparent);transform:translateX(-150%) skewX(-22deg);animation:vc-sweep 13s ease-in-out infinite;pointer-events:none;z-index:2}
+body:not(.motion-off) .collage-image{animation:vc-glow 7s ease-in-out infinite}
+body:not(.motion-off) .cinematic-sun{animation:vc-sunlight 9s ease-in-out infinite}
+body:not(.motion-off) .brand-icon{animation:vc-glow 4s ease-in-out infinite}
+body:not(.motion-off) .ring{animation:vc-breathe 4s ease-in-out infinite}
+body:not(.motion-off) .hero-status.operational,body:not(.motion-off) .rockstar-overall.operational{animation:vc-glow 5s ease-in-out infinite}
+body:not(.motion-off) .launch-unit{animation:vc-float 5s ease-in-out infinite}
+body:not(.motion-off) .launch-unit:nth-child(2){animation-delay:.4s}
+body:not(.motion-off) .launch-unit:nth-child(3){animation-delay:.8s}
+body:not(.motion-off) .launch-unit:nth-child(4){animation-delay:1.2s}
+body:not(.motion-off) .region-card,body:not(.motion-off) .rockstar-service,body:not(.motion-off) .metric-card{transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease}
+body:not(.motion-off) .region-card:hover,body:not(.motion-off) .rockstar-service:hover,body:not(.motion-off) .metric-card:hover{transform:translateY(-4px);box-shadow:0 14px 30px rgba(247,89,190,.17);border-color:rgba(255,143,214,.85)}
+body:not(.motion-off) .rockstar-history-bar i.operational:hover,body:not(.motion-off) .history-chart i.operational:hover{filter:brightness(1.35) drop-shadow(0 0 5px rgba(57,241,185,.6))}
+}
+body.motion-off *,body.motion-off *::before,body.motion-off *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(max-width:720px){.motion-toggle{padding:8px 9px;font-size:10px}.header-right{gap:7px;flex-wrap:wrap;justify-content:flex-end}}
