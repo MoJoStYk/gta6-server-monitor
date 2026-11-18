@@ -566,3 +566,25 @@ body.motion-off .intro > .collage-art .collage-image{animation:none!important;tr
 .vc-news-card a:focus-visible,.vc-news-tab:focus-visible,.vc-menu-external:focus-visible{outline:3px solid #77f5e8;outline-offset:4px}
 .vc-news-card a:hover{background:rgba(105,239,228,.14);text-decoration:underline}
 @media(max-width:620px){.vc-news-card{min-height:unset}.vc-news-card-head{gap:8px}}
+
+/* THE WIRE Premium 3.8 · terminal filters */
+.vc-news-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:16px clamp(20px,3.5vw,48px) 5px}
+.vc-news-search-label{display:flex;align-items:center;gap:9px;min-width:min(100%,290px);flex:1 1 300px;background:#211435;border:1px solid #a65a9c;border-radius:6px;padding:9px 12px;color:#6cecd9;font-size:22px}
+#vc-news-search{width:100%;min-width:0;background:transparent;border:0;outline:0;color:#fff2f9;font-size:12px;font-weight:700;letter-spacing:.03em}
+#vc-news-search::placeholder{color:#c2a3c4}
+.vc-news-search-label:focus-within{outline:2px solid #6cecd9;outline-offset:2px}
+.vc-news-filters{display:flex;gap:6px;flex-wrap:wrap}
+.vc-news-filter{padding:10px 12px;border:1px solid #8b508c;background:#241538;color:#f1cbe8;border-radius:5px;font-size:10px;font-weight:900;letter-spacing:.06em;cursor:pointer}
+.vc-news-filter.active{background:linear-gradient(110deg,#f254ac,#a63fb4);color:#fff;border-color:#ffb2df;box-shadow:0 0 16px #fa56ab33}
+.vc-news-filter:focus-visible,.vc-news-related summary:focus-visible{outline:2px solid #64f1dc;outline-offset:3px}
+.vc-news-group-label{display:flex;align-items:center;gap:8px;font-size:11px;color:#f2c8e4;cursor:pointer}
+.vc-news-group-label input{accent-color:#e95cba;width:16px;height:16px}
+.vc-news-results{padding:0 clamp(20px,3.5vw,48px);font-size:11px;color:#6decd7;margin:9px 0}
+.vc-news-source-badge{display:inline-block;align-self:flex-start;margin-top:12px;padding:5px 8px;border-radius:4px;font-size:9px;letter-spacing:.07em;font-weight:900}
+.vc-news-source-badge.verified{color:#7fffe1;border:1px solid #46bd9d;background:#0b3d36}
+.vc-news-source-badge.external{color:#ffd4e7;border:1px solid #80507e;background:#3c2348}
+.vc-news-related{margin-top:12px;border-top:1px solid #7c4a7a;padding-top:10px;color:#8cf8e9;font-size:11px}
+.vc-news-related summary{cursor:pointer;font-weight:900;letter-spacing:.04em}
+.vc-news-related a{display:block!important;max-width:100%;overflow-wrap:anywhere;margin-top:8px!important;padding:7px!important;font-size:10px!important}
+@media(max-width:620px){.vc-news-controls{padding:14px 20px 5px}.vc-news-results{padding:0 20px}.vc-news-filters{width:100%}.vc-news-filter{flex:1 1 auto}}
+@media(prefers-reduced-motion:reduce){.vc-news-filter{transition:none}}

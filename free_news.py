@@ -5,7 +5,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 import requests
 from flask import jsonify
 
@@ -22,6 +22,15 @@ def _timestamp(s):
         return dt.astimezone(timezone.utc).isoformat() if dt.tzinfo else dt.replace(tzinfo=timezone.utc).isoformat()
     except (TypeError, ValueError, IndexError):
         return ''
+
+def _is_official_url(url):
+    """Only direct HTTPS links to an allowlisted Rockstar domain count as verified."""
+    try:
+        parsed = urlsplit(url)
+        host = (parsed.hostname or '').lower().rstrip('.')
+        return parsed.scheme == 'https' and (host == 'rockstargames.com' or host.endswith('.rockstargames.com'))
+    except ValueError:
+        return False
 
 def _fetch(label, query):
     url = 'https://news.google.com/rss/search?q=' + quote(query) + '&hl=es&gl=ES&ceid=ES:es'
@@ -43,7 +52,7 @@ def _fetch(label, query):
         out.append({'id': link, 'text': title[:300], 'title': title[:300],
                     'username': publisher, 'publisher': publisher, 'category': label,
                     'created_at': when, 'url': link, 'metrics': {}, 'engagement': 0,
-                    'official': publisher.casefold().strip() in {'rockstar games', 'rockstar games newsroom'}})
+                    'official': _is_official_url(link), 'attributed_official': publisher.casefold().strip() in {'rockstar games', 'rockstar games newsroom'}})
     return out
 
 def register_free_news(app):
