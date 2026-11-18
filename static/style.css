@@ -588,3 +588,9 @@ body.motion-off .intro > .collage-art .collage-image{animation:none!important;tr
 .vc-news-related a{display:block!important;max-width:100%;overflow-wrap:anywhere;margin-top:8px!important;padding:7px!important;font-size:10px!important}
 @media(max-width:620px){.vc-news-controls{padding:14px 20px 5px}.vc-news-results{padding:0 20px}.vc-news-filters{width:100%}.vc-news-filter{flex:1 1 auto}}
 @media(prefers-reduced-motion:reduce){.vc-news-filter{transition:none}}
+
+/* Premium 3.8.1 — Nueva Zelanda / Rockstar */
+.rockstar-nz-note{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 18px;border:1px solid rgba(244,116,199,.55);border-radius:12px;background:linear-gradient(110deg,rgba(221,75,169,.17),rgba(26,21,56,.66));color:#fff2fa}
+.rockstar-nz-note .country-flag{width:52px;height:35px;object-fit:cover;border-radius:5px;box-shadow:0 0 16px rgba(236,102,198,.4);flex:none}
+.rockstar-nz-note strong{display:block;font-size:14px;letter-spacing:.04em}
+.rockstar-nz-note small{display:block;margin-top:5px;color:#d9c7df;line-height:1.5}

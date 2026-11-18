@@ -52,6 +52,7 @@ REGIONS = {
     "Irlanda": ("IE", "https://status.playstation.com/en-ie/"),
     "Estados Unidos": ("US", "https://status.playstation.com/en-us/"),
     "Canadá": ("CA", "https://status.playstation.com/en-ca/"),
+    "Nueva Zelanda": ("NZ", "https://status.playstation.com/en-nz/"),
 }
 SERVICE_NAMES = {
     "PlayStation_Store": "PlayStation Store",

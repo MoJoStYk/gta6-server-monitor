@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const countries=[['España','🇪🇸'],['Alemania','🇩🇪'],['Francia','🇫🇷'],['Reino Unido','🇬🇧'],['Italia','🇮🇹'],['Países Bajos','🇳🇱'],['Polonia','🇵🇱'],['Irlanda','🇮🇪'],['Estados Unidos','🇺🇸'],['Canadá','🇨🇦']];
+const countries=[['España','🇪🇸'],['Alemania','🇩🇪'],['Francia','🇫🇷'],['Reino Unido','🇬🇧'],['Italia','🇮🇹'],['Países Bajos','🇳🇱'],['Polonia','🇵🇱'],['Irlanda','🇮🇪'],['Estados Unidos','🇺🇸'],['Canadá','🇨🇦'],['Nueva Zelanda','🇳🇿']];
 const labels={operational:'OPERATIVO',degraded:'DEGRADADO',outage:'INCIDENCIA',unreachable:'SIN CONEXIÓN',unknown:'SIN DATOS'};
 const serviceIcons={'Gestión de cuentas':'♙','Juegos y redes sociales':'◈','PlayStation Store':'▣'};
 let data=null,history=[],selected='España',filter='all',previous={},seconds=60,busy=false,hasLoaded=false;
@@ -8,7 +8,7 @@ const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const state=s=>['operational','degraded','outage','unreachable','unknown'].includes(s)?s:'unknown';
 const statusText=s=>labels[state(s)];
 function fmtDate(s){if(!s)return 'Pendiente';const d=new Date(s);return Number.isNaN(d.getTime())?'Fecha desconocida':d.toLocaleString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'});}
-const flagCodes={'España':'es','Alemania':'de','Francia':'fr','Reino Unido':'gb','Italia':'it','Países Bajos':'nl','Polonia':'pl','Irlanda':'ie','Estados Unidos':'us','Canadá':'ca'};
+const flagCodes={'España':'es','Alemania':'de','Francia':'fr','Reino Unido':'gb','Italia':'it','Países Bajos':'nl','Polonia':'pl','Irlanda':'ie','Estados Unidos':'us','Canadá':'ca','Nueva Zelanda':'nz'};
 function flag(name){return countries.find(c=>c[0]===name)?.[1]||'🌍';}
 function flagMarkup(name){const code=flagCodes[name];return code?`<img class="country-flag" src="/static/flags/${code}.svg?v=2-4" alt="Bandera de ${safe(name)}" loading="lazy" width="60" height="40">`:`<span class="flag-fallback">🌍</span>`;}
 function overallStatus(rs){if(!rs.length)return 'unknown';if(rs.some(r=>r.status==='outage'))return 'outage';if(rs.some(r=>r.status==='degraded'))return 'degraded';if(rs.some(r=>!['operational','outage','degraded'].includes(r.status)))return 'unknown';return 'operational';}
